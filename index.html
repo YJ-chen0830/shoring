@@ -101,9 +101,11 @@
   </div>
 </div>
 
-<div class="tabs no-print">
+<div class="tabs no-print" style="flex-wrap:wrap;">
   <div class="tab active" id="tab-ct" onclick="switchTab('ct')">懸臂式鋼板樁</div>
   <div class="tab" id="tab-st" onclick="switchTab('st')">單層水平支撐</div>
+  <div class="tab" id="tab-rp" onclick="switchTab('rp')">鋼軌樁擋土</div>
+  <div class="tab" id="tab-lp" onclick="switchTab('lp')">鋼襯板工作井</div>
 </div>
 
 <!-- ===== 懸臂式 ===== -->
@@ -226,10 +228,120 @@
 </div>
 </div>
 
+<!-- ===== 鋼軌樁 ===== -->
+<div id="panel-rp" class="panel">
+<div class="mob-tabs">
+  <button class="mob-tab active" onclick="switchMobTab('rp-in',this)">📋 輸入參數</button>
+  <button class="mob-tab" id="mobTab-rp-r" onclick="switchMobTab('rp-r',this)">📊 計算結果</button>
+</div>
+<div class="grid">
+  <div class="card mob-active" data-tab="rp-in">
+    <h2>鋼軌樁輸入（懸臂式 · 砂質土）</h2>
+    <div class="sec">開挖條件</div>
+    <div class="row2">
+      <div><label>開挖深度 H (m)</label><input id="rp-H" type="number" value="2.5" step="0.1" min="0.5"></div>
+      <div><label>地表超載 q (kN/m²)</label><input id="rp-q" type="number" value="10" step="1" min="0"></div>
+    </div>
+    <div class="sec">土壤參數</div>
+    <div class="row2">
+      <div><label>單位重 γ (kN/m³)</label><input id="rp-r" type="number" value="18" step="0.5"></div>
+      <div><label>內摩擦角 φ (°)</label><input id="rp-phi" type="number" value="30" step="1" min="15" max="45"></div>
+    </div>
+    <label>被動土壓安全係數 Fs</label>
+    <input id="rp-fs" type="number" value="1.5" step="0.1" min="1">
+    <div class="sec">鋼軌樁</div>
+    <label>斷面</label>
+    <select id="rp-sec" onchange="rpSecChange()">
+      <option value="295">37 kg/m 鋼軌 單支（Z≈295 cm³）</option>
+      <option value="396">50 kg/m 鋼軌 單支（Z≈396 cm³）</option>
+      <option value="590">37 kg/m 鋼軌 雙拼（Z≈590 cm³）</option>
+      <option value="792" selected>50 kg/m 鋼軌 雙拼（Z≈792 cm³）</option>
+      <option value="1360">H300×300（Zx=1360 cm³）</option>
+      <option value="custom">自訂斷面模數</option>
+    </select>
+    <div id="rp-z-wrap" style="display:none"><label>斷面模數 Z (cm³)</label><input id="rp-z" type="number" value="396"></div>
+    <div class="row2">
+      <div><label>樁間距 s (m)</label><input id="rp-s" type="number" value="1.0" step="0.1" min="0.3"></div>
+      <div><label>被動有效寬度 w (m)</label><input id="rp-w" type="number" value="0.5" step="0.05" min="0.1"></div>
+    </div>
+    <label>容許彎曲應力 σa (MPa)</label>
+    <input id="rp-sa" type="number" value="140" step="5">
+    <div class="sec">橫板條（木襯板）</div>
+    <div class="row2">
+      <div><label>板厚 t (cm)</label><input id="rp-t" type="number" value="6" step="0.5" min="2"></div>
+      <div><label>木材容許彎曲應力 (MPa)</label><input id="rp-saw" type="number" value="8" step="0.5"></div>
+    </div>
+    <button class="calc-btn" onclick="calcRail()">計算鋼軌樁擋土</button>
+    <div class="note">鋼軌樁＋橫板條為淺開挖（一般 H≦3m）常用工法。舊鋼軌因材質不明，容許應力常折減取 σa≈140 MPa。被動有效寬度 w 常取樁寬之 2～3 倍。地下水位以下不適用（板條無止水性）。</div>
+  </div>
+  <div class="card" data-tab="rp-r">
+    <h2>鋼軌樁結果</h2>
+    <div id="rp-result"><p style="color:#888">尚未計算</p></div>
+    <details class="proc" id="rp-proc" style="display:none">
+      <summary>📋 計算過程（供第三方檢核）</summary>
+      <pre id="rp-proc-text"></pre>
+    </details>
+    <button class="pro-btn no-print" onclick="openPro()">📄 產出計算書 PDF</button>
+  </div>
+</div>
+</div>
+
+<!-- ===== 鋼襯板工作井 ===== -->
+<div id="panel-lp" class="panel">
+<div class="mob-tabs">
+  <button class="mob-tab active" onclick="switchMobTab('lp-in',this)">📋 輸入參數</button>
+  <button class="mob-tab" id="mobTab-lp-r" onclick="switchMobTab('lp-r',this)">📊 計算結果</button>
+</div>
+<div class="grid">
+  <div class="card mob-active" data-tab="lp-in">
+    <h2>圓形鋼襯板工作井輸入</h2>
+    <div class="sec">井體條件</div>
+    <div class="row2">
+      <div><label>井深 H (m)</label><input id="lp-H" type="number" value="6.0" step="0.5" min="1"></div>
+      <div><label>井內徑 Di (m)</label><input id="lp-Di" type="number" value="3.0" step="0.5" min="1"></div>
+    </div>
+    <label>地表超載 q (kN/m²)</label>
+    <input id="lp-q" type="number" value="10" step="1" min="0">
+    <div class="sec">土壓條件</div>
+    <div class="row2">
+      <div><label>單位重 γ (kN/m³)</label><input id="lp-r" type="number" value="18" step="0.5"></div>
+      <div><label>側向土壓係數 K</label><input id="lp-K" type="number" value="0.5" step="0.05" min="0.2" max="1"></div>
+    </div>
+    <div class="sec">鋼襯板斷面（每米井深，依製造商型錄）</div>
+    <label>板厚預設</label>
+    <select id="lp-t" onchange="lpTChange()">
+      <option value="33,75">t=2.7 mm（A≈33 cm²/m, I≈75 cm⁴/m）</option>
+      <option value="39,90" selected>t=3.2 mm（A≈39 cm²/m, I≈90 cm⁴/m）</option>
+      <option value="49,111">t=4.0 mm（A≈49 cm²/m, I≈111 cm⁴/m）</option>
+      <option value="custom">自訂 A / I</option>
+    </select>
+    <div id="lp-ai-wrap" style="display:none" class="row2">
+      <div><label>斷面積 A (cm²/m)</label><input id="lp-A" type="number" value="39"></div>
+      <div><label>慣性矩 I (cm⁴/m)</label><input id="lp-I" type="number" value="90"></div>
+    </div>
+    <div class="row2">
+      <div><label>容許壓應力 σa (MPa)</label><input id="lp-sa" type="number" value="140" step="5"></div>
+      <div><label>挫屈安全係數 Fs</label><input id="lp-fsb" type="number" value="2.0" step="0.1" min="1"></div>
+    </div>
+    <button class="calc-btn" onclick="calcShaft()">計算工作井襯板</button>
+    <div class="note">圓形工作井以環壓（Ring Compression）設計：T=p·R。襯板 A、I 值務必依實際採用之製造商型錄修正（表列為概略值）。矩形工作井、地下水壓、開口補強應另行檢討。</div>
+  </div>
+  <div class="card" data-tab="lp-r">
+    <h2>工作井結果</h2>
+    <div id="lp-result"><p style="color:#888">尚未計算</p></div>
+    <details class="proc" id="lp-proc" style="display:none">
+      <summary>📋 計算過程（供第三方檢核）</summary>
+      <pre id="lp-proc-text"></pre>
+    </details>
+    <button class="pro-btn no-print" onclick="openPro()">📄 產出計算書 PDF</button>
+  </div>
+</div>
+</div>
+
 </main>
 <script>
 function switchTab(id){
-  ['ct','st'].forEach(function(t){
+  ['ct','st','rp','lp'].forEach(function(t){
     document.getElementById('tab-'+t).classList.toggle('active',t===id);
     document.getElementById('panel-'+t).classList.toggle('active',t===id);
   });
@@ -436,6 +548,139 @@ function calcStrut(){
   document.getElementById('st-proc').style.display='';
   if(window.innerWidth<768){var b=document.getElementById('mobTab-st-r');if(b)switchMobTab('st-r',b);}
 }
+
+function rpSecChange(){document.getElementById('rp-z-wrap').style.display=document.getElementById('rp-sec').value==='custom'?'':'none';}
+function lpTChange(){document.getElementById('lp-ai-wrap').style.display=document.getElementById('lp-t').value==='custom'?'':'none';}
+
+/* ── 鋼軌樁（懸臂式 · 每支樁分析） ── */
+function calcRail(){
+  var H=v('rp-H'),q=v('rp-q'),r=v('rp-r'),phi=v('rp-phi'),Fs=v('rp-fs'),sa=v('rp-sa');
+  var Z=document.getElementById('rp-sec').value==='custom'?v('rp-z'):parseFloat(document.getElementById('rp-sec').value);
+  var s=v('rp-s'),w=v('rp-w'),t=v('rp-t'),saw=v('rp-saw');
+  var rad=phi*Math.PI/180;
+  var Ka=Math.pow(Math.tan(Math.PI/4-rad/2),2);
+  var Kp=Math.pow(Math.tan(Math.PI/4+rad/2),2);
+  var Kpd=Kp/Fs;
+  // 主動土壓 pa(z)=Ka(q+γz)：開挖面以上作用寬 s；以下因土拱效應作用寬 w（NAVFAC）
+  function paF(z1,z2){return Ka*(q*(z2-z1)+r*(z2*z2-z1*z1)/2);} // 合力
+  function paM(z1,z2,L){ // 對深度 L 取矩
+    function g(z){return Ka*(q*(L*z-z*z/2)+r*(L*z*z/2-z*z*z/3));}
+    return g(z2)-g(z1);
+  }
+  function fD(D){
+    var L=H+D;
+    var Ma=s*paM(0,H,L)+w*paM(H,L,L);
+    var Mp=w*Kpd*r*D*D*D/6;
+    return Mp-Ma;
+  }
+  var D0=bisect(fD,0.05,80,1e-4);
+  if(isNaN(D0)){document.getElementById('rp-result').innerHTML='<p class="ng">無法求得貫入深度（被動有效寬度可能過小），請檢查參數。</p>';return;}
+  var D=1.2*D0;
+  // 零剪力點（開挖面以下 x）
+  function fx(x){
+    return s*paF(0,H)+w*paF(H,H+x)-w*0.5*Kpd*r*x*x;
+  }
+  var x0=bisect(fx,0.01,D0+H,1e-4);
+  var zs=H+x0;
+  var Mmax=s*paM(0,H,zs)+w*paM(H,zs,zs)-w*Kpd*r*x0*x0*x0/6; // kN·m/樁
+  var sig=Mmax*1e6/(Z*1e3);
+  var ratio=sig/sa;
+  // 橫板條：最深處側壓 × 簡支跨 s
+  var pH=Ka*(q+r*H); // kN/m²
+  var Mlag=pH*s*s/8; // kN·m per 1m 高條帶
+  var Zlag=100*t*t/6; // cm³ per 1m 條帶（b=100cm）
+  var sigLag=Mlag*1e6/(Zlag*1e3);
+  var ratioLag=sigLag/saw;
+  var totalL=H+D;
+  document.getElementById('rp-result').innerHTML=
+    '<table><tr><th>項目</th><th>數值</th></tr>'+
+    '<tr><td>Ka / Kp′</td><td>'+f3(Ka)+' / '+f3(Kpd)+'</td></tr>'+
+    '<tr><td>理論貫入深度 D₀ / 設計 D</td><td>'+f2(D0)+' / '+f2(D)+' m</td></tr>'+
+    '<tr><td>鋼軌樁總長 H＋D</td><td>'+f2(totalL)+' m</td></tr>'+
+    '<tr><td>每樁最大彎矩 Mmax</td><td>'+f2(Mmax)+' kN·m</td></tr>'+
+    '<tr><td>鋼軌應力 σ＝M/Z</td><td>'+f2(sig)+' MPa</td></tr>'+
+    '<tr><td>鋼軌應力檢核 σ/σa</td><td>'+statusCell(ratio)+'</td></tr>'+
+    '<tr><td>最深處側壓 p</td><td>'+f2(pH)+' kN/m²</td></tr>'+
+    '<tr><td>板條彎矩 M＝p·s²/8</td><td>'+f2(Mlag)+' kN·m/m</td></tr>'+
+    '<tr><td>板條應力檢核 σ/σa(木)</td><td>'+statusCell(ratioLag)+'</td></tr></table>';
+  var p='';
+  p+='【鋼軌樁擋土計算 · 懸臂式 · 每支樁分析 · 砂質土（c=0）已降水】\n\n';
+  p+='一、設計條件\n';
+  p+='  H = '+f2(H)+' m，q = '+f2(q)+' kN/m²，γ = '+f2(r)+' kN/m³，φ = '+phi+'°，Fs = '+Fs+'\n';
+  p+='  鋼軌 Z = '+Z+' cm³，σa = '+sa+' MPa（舊料折減）\n';
+  p+='  樁間距 s = '+f2(s)+' m，被動有效寬度 w = '+f2(w)+' m\n';
+  p+='  橫板條 t = '+t+' cm，木材 σa = '+saw+' MPa\n\n';
+  p+='二、土壓係數\n';
+  p+='  Ka = tan²(45°−φ/2) = '+f3(Ka)+'；Kp′ = Kp/Fs = '+f3(Kpd)+'\n\n';
+  p+='三、貫入深度（對樁趾取矩）\n';
+  p+='  主動土壓：開挖面以上作用寬度 = 樁間距 s；開挖面以下因土拱效應\n';
+  p+='  作用寬度 = 有效寬度 w（NAVFAC 建議）\n';
+  p+='  Ma = s×∫₀ᴴ pa(z)(L−z)dz + w×∫ᴴᴸ pa(z)(L−z)dz\n';
+  p+='  Mp = w×Kp′·γ·D³/6\n';
+  p+='  解得 D₀ = '+f2(D0)+' m，設計 D = 1.2 D₀ = '+f2(D)+' m\n';
+  p+='  鋼軌樁總長 = '+f2(totalL)+' m\n\n';
+  p+='四、鋼軌樁彎矩與應力\n';
+  p+='  零剪力點：開挖面以下 x = '+f2(x0)+' m\n';
+  p+='  Mmax = '+f2(Mmax)+' kN·m/樁\n';
+  p+='  σ = Mmax/Z = '+f2(sig)+' MPa，σ/σa = '+f2(ratio)+(ratio<=1?' ∴ OK':' ∴ NG，請縮小樁間距或加大斷面')+'\n\n';
+  p+='五、橫板條檢核（最深處側壓、簡支跨 s）\n';
+  p+='  p = Ka(q+γH) = '+f3(Ka)+'×('+f2(q)+'+'+f2(r)+'×'+f2(H)+') = '+f2(pH)+' kN/m²\n';
+  p+='  M = p·s²/8 = '+f2(Mlag)+' kN·m/m\n';
+  p+='  Z = 100×t²/6 = '+f2(Zlag)+' cm³/m\n';
+  p+='  σ = '+f2(sigLag)+' MPa，σ/σa = '+f2(ratioLag)+(ratioLag<=1?' ∴ OK':' ∴ NG，請加厚板條或縮小樁間距')+'\n';
+  document.getElementById('rp-proc-text').textContent=p;
+  document.getElementById('rp-proc').style.display='';
+  if(window.innerWidth<768){var b=document.getElementById('mobTab-rp-r');if(b)switchMobTab('rp-r',b);}
+}
+
+/* ── 圓形鋼襯板工作井（環壓設計） ── */
+function calcShaft(){
+  var H=v('lp-H'),Di=v('lp-Di'),q=v('lp-q'),r=v('lp-r'),K=v('lp-K');
+  var A,I;
+  if(document.getElementById('lp-t').value==='custom'){A=v('lp-A');I=v('lp-I');}
+  else{var ai=document.getElementById('lp-t').value.split(',');A=parseFloat(ai[0]);I=parseFloat(ai[1]);}
+  var sa=v('lp-sa'),Fsb=v('lp-fsb');
+  var R=Di/2;
+  var pMax=K*(q+r*H); // kN/m²（井底最大側壓）
+  var T=pMax*R; // kN/m 環壓力
+  var sig=T*1e3/(A*1e2); // MPa
+  var ratio=sig/sa;
+  // 環挫屈：p_cr = 3EI/R³（E=200GPa=2e8 kN/m²，I: cm⁴/m → m⁴/m ×1e-8）
+  var E=2e8;
+  var pcr=3*E*(I*1e-8)/Math.pow(R,3); // kN/m²
+  var pAllow=pcr/Fsb;
+  var ratioB=pMax/pAllow;
+  document.getElementById('lp-result').innerHTML=
+    '<table><tr><th>項目</th><th>數值</th></tr>'+
+    '<tr><td>井半徑 R</td><td>'+f2(R)+' m</td></tr>'+
+    '<tr><td>井底最大側壓 p＝K(q+γH)</td><td>'+f2(pMax)+' kN/m²</td></tr>'+
+    '<tr><td>環壓力 T＝p·R</td><td>'+f2(T)+' kN/m</td></tr>'+
+    '<tr><td>環壓應力 σ＝T/A</td><td>'+f2(sig)+' MPa</td></tr>'+
+    '<tr><td>環壓檢核 σ/σa</td><td>'+statusCell(ratio)+'</td></tr>'+
+    '<tr><td>臨界挫屈壓力 p_cr＝3EI/R³</td><td>'+f2(pcr)+' kN/m²</td></tr>'+
+    '<tr><td>容許挫屈壓力 p_cr/Fs</td><td>'+f2(pAllow)+' kN/m²</td></tr>'+
+    '<tr><td>挫屈檢核 p/(p_cr/Fs)</td><td>'+statusCell(ratioB)+'</td></tr></table>';
+  var p='';
+  p+='【圓形鋼襯板工作井計算 · 環壓設計（Ring Compression）】\n\n';
+  p+='一、設計條件\n';
+  p+='  井深 H = '+f2(H)+' m，內徑 Di = '+f2(Di)+' m（R = '+f2(R)+' m）\n';
+  p+='  q = '+f2(q)+' kN/m²，γ = '+f2(r)+' kN/m³，側壓係數 K = '+K+'\n';
+  p+='  襯板 A = '+A+' cm²/m，I = '+I+' cm⁴/m，σa = '+sa+' MPa，挫屈 Fs = '+Fsb+'\n\n';
+  p+='二、設計側壓（井底最大）\n';
+  p+='  p = K(q+γH) = '+K+'×('+f2(q)+'+'+f2(r)+'×'+f2(H)+') = '+f2(pMax)+' kN/m²\n\n';
+  p+='三、環壓力與應力\n';
+  p+='  T = p×R = '+f2(pMax)+'×'+f2(R)+' = '+f2(T)+' kN/m\n';
+  p+='  σ = T/A = '+f2(T)+'×10³/'+A+'×10² = '+f2(sig)+' MPa\n';
+  p+='  σ/σa = '+f2(ratio)+(ratio<=1?' ≦ 1.0 ∴ OK':' ＞ 1.0 ∴ NG，請加厚襯板')+'\n\n';
+  p+='四、環挫屈檢核\n';
+  p+='  p_cr = 3EI/R³ = 3×2×10⁸×'+I+'×10⁻⁸/'+f2(R)+'³ = '+f2(pcr)+' kN/m²\n';
+  p+='  容許 = p_cr/Fs = '+f2(pAllow)+' kN/m²\n';
+  p+='  p/(p_cr/Fs) = '+f2(ratioB)+(ratioB<=1?' ≦ 1.0 ∴ OK':' ＞ 1.0 ∴ NG，請加厚襯板或增設環樑')+'\n\n';
+  p+='※ 襯板 A、I 值應依實際採用製造商型錄修正；地下水壓、開口補強、井底穩定另行檢討。\n';
+  document.getElementById('lp-proc-text').textContent=p;
+  document.getElementById('lp-proc').style.display='';
+  if(window.innerWidth<768){var b=document.getElementById('mobTab-lp-r');if(b)switchMobTab('lp-r',b);}
+}
 </script>
 <script>
 window.jrhDocMeta={
@@ -449,6 +694,8 @@ window.jrhDocMeta={
  ],
  "notes": [
   "本計算適用均質砂質地層、無地下水（或已完成降水）之條件；黏土層、互層地質或高地下水位，應以完整土壓分析（含水壓）另行檢討。",
+  "鋼軌樁＋橫板條工法不具止水性，僅適用地下水位以上之淺開挖；舊鋼軌容許應力已折減，如使用新料可依材質證明調整。",
+  "鋼襯板工作井之襯板斷面性質（A、I）應依實際採用之製造商型錄核算；開口（推進口）部位應辦理補強設計。",
   "土壤參數（γ、φ、c）應依地質鑽探報告及室內試驗結果選用。",
   "開挖深度超過 1.5 公尺應設擋土支撐；深開挖（超過規範規定）應辦理監測（壁體傾斜、支撐軸力、鄰房沉陷等）。",
   "支撐架設後應施加預壓力並鎖定，拆撐應依回築進度逐層換撐。",
