@@ -294,11 +294,32 @@
 </div>
 <div class="grid">
   <div class="card mob-active" data-tab="lp-in">
-    <h2>圓形鋼襯板工作井輸入</h2>
+    <h2>鋼襯板工作井輸入</h2>
     <div class="sec">井體條件</div>
+    <label>井形</label>
+    <select id="lp-shape" onchange="lpShapeChange()">
+      <option value="circle" selected>圓形</option>
+      <option value="ellipse">橢圓形</option>
+    </select>
     <div class="row2">
       <div><label>井深 H (m)</label><input id="lp-H" type="number" value="6.0" step="0.5" min="1"></div>
-      <div><label>井內徑 Di (m)</label><input id="lp-Di" type="number" value="3.0" step="0.5" min="1"></div>
+      <div id="lp-di-wrap"><label>井內徑 Di (m)</label><input id="lp-Di" type="number" value="3.0" step="0.5" min="1"></div>
+    </div>
+    <div id="lp-ab-wrap" style="display:none">
+      <div class="row2">
+        <div><label>長徑（長軸內徑）La (m)</label><input id="lp-La" type="number" value="5.0" step="0.5" min="1"></div>
+        <div><label>短徑（短軸內徑）Lb (m)</label><input id="lp-Lb" type="number" value="3.0" step="0.5" min="1"></div>
+      </div>
+      <div class="sec">補強環樑（橢圓形必要）</div>
+      <label>環樑斷面（H 型鋼）</label>
+      <select id="lp-rb">
+        <option value="63.53,472">H200×200×8×12（A=63.5cm², Zx=472cm³）</option>
+        <option value="92.18,867" selected>H250×250×9×14（A=92.2cm², Zx=867cm³）</option>
+        <option value="119.8,1360">H300×300×10×15（A=119.8cm², Zx=1360cm³）</option>
+        <option value="173.9,2300">H350×350×12×19（A=173.9cm², Zx=2300cm³）</option>
+      </select>
+      <label>環樑垂直間距 Lv (m)</label>
+      <input id="lp-lv" type="number" value="0.75" step="0.25" min="0.5">
     </div>
     <label>地表超載 q (kN/m²)</label>
     <input id="lp-q" type="number" value="10" step="1" min="0">
@@ -310,14 +331,17 @@
     <div class="sec">鋼襯板斷面（每米井深，依製造商型錄）</div>
     <label>板厚預設</label>
     <select id="lp-t" onchange="lpTChange()">
-      <option value="33,75">t=2.7 mm（A≈33 cm²/m, I≈75 cm⁴/m）</option>
-      <option value="39,90" selected>t=3.2 mm（A≈39 cm²/m, I≈90 cm⁴/m）</option>
-      <option value="49,111">t=4.0 mm（A≈49 cm²/m, I≈111 cm⁴/m）</option>
-      <option value="custom">自訂 A / I</option>
+      <option value="33,75,29">t=2.7 mm（A≈33 cm²/m, I≈75 cm⁴/m, Z≈29 cm³/m）</option>
+      <option value="39,90,35" selected>t=3.2 mm（A≈39 cm²/m, I≈90 cm⁴/m, Z≈35 cm³/m）</option>
+      <option value="49,111,44">t=4.0 mm（A≈49 cm²/m, I≈111 cm⁴/m, Z≈44 cm³/m）</option>
+      <option value="custom">自訂 A / I / Z</option>
     </select>
-    <div id="lp-ai-wrap" style="display:none" class="row2">
-      <div><label>斷面積 A (cm²/m)</label><input id="lp-A" type="number" value="39"></div>
-      <div><label>慣性矩 I (cm⁴/m)</label><input id="lp-I" type="number" value="90"></div>
+    <div id="lp-ai-wrap" style="display:none">
+      <div class="row2">
+        <div><label>斷面積 A (cm²/m)</label><input id="lp-A" type="number" value="39"></div>
+        <div><label>慣性矩 I (cm⁴/m)</label><input id="lp-I" type="number" value="90"></div>
+      </div>
+      <label>斷面模數 Z (cm³/m)</label><input id="lp-Z" type="number" value="35">
     </div>
     <div class="row2">
       <div><label>容許壓應力 σa (MPa)</label><input id="lp-sa" type="number" value="140" step="5"></div>
@@ -633,53 +657,113 @@ function calcRail(){
   if(window.innerWidth<768){var b=document.getElementById('mobTab-rp-r');if(b)switchMobTab('rp-r',b);}
 }
 
-/* ── 圓形鋼襯板工作井（環壓設計） ── */
+/* ── 鋼襯板工作井（圓形：環壓；橢圓形：環壓＋彎矩） ── */
+function lpShapeChange(){
+  var el=document.getElementById('lp-shape').value==='ellipse';
+  document.getElementById('lp-di-wrap').style.display=el?'none':'';
+  document.getElementById('lp-ab-wrap').style.display=el?'':'none';
+}
 function calcShaft(){
-  var H=v('lp-H'),Di=v('lp-Di'),q=v('lp-q'),r=v('lp-r'),K=v('lp-K');
-  var A,I;
-  if(document.getElementById('lp-t').value==='custom'){A=v('lp-A');I=v('lp-I');}
-  else{var ai=document.getElementById('lp-t').value.split(',');A=parseFloat(ai[0]);I=parseFloat(ai[1]);}
+  var shape=document.getElementById('lp-shape').value;
+  var H=v('lp-H'),q=v('lp-q'),r=v('lp-r'),K=v('lp-K');
+  var A,I,Zl;
+  if(document.getElementById('lp-t').value==='custom'){A=v('lp-A');I=v('lp-I');Zl=v('lp-Z');}
+  else{var ai=document.getElementById('lp-t').value.split(',');A=parseFloat(ai[0]);I=parseFloat(ai[1]);Zl=parseFloat(ai[2]);}
   var sa=v('lp-sa'),Fsb=v('lp-fsb');
-  var R=Di/2;
+  var E=2e8; // kN/m²
   var pMax=K*(q+r*H); // kN/m²（井底最大側壓）
-  var T=pMax*R; // kN/m 環壓力
-  var sig=T*1e3/(A*1e2); // MPa
-  var ratio=sig/sa;
-  // 環挫屈：p_cr = 3EI/R³（E=200GPa=2e8 kN/m²，I: cm⁴/m → m⁴/m ×1e-8）
-  var E=2e8;
-  var pcr=3*E*(I*1e-8)/Math.pow(R,3); // kN/m²
-  var pAllow=pcr/Fsb;
-  var ratioB=pMax/pAllow;
-  document.getElementById('lp-result').innerHTML=
-    '<table><tr><th>項目</th><th>數值</th></tr>'+
-    '<tr><td>井半徑 R</td><td>'+f2(R)+' m</td></tr>'+
-    '<tr><td>井底最大側壓 p＝K(q+γH)</td><td>'+f2(pMax)+' kN/m²</td></tr>'+
-    '<tr><td>環壓力 T＝p·R</td><td>'+f2(T)+' kN/m</td></tr>'+
-    '<tr><td>環壓應力 σ＝T/A</td><td>'+f2(sig)+' MPa</td></tr>'+
-    '<tr><td>環壓檢核 σ/σa</td><td>'+statusCell(ratio)+'</td></tr>'+
-    '<tr><td>臨界挫屈壓力 p_cr＝3EI/R³</td><td>'+f2(pcr)+' kN/m²</td></tr>'+
-    '<tr><td>容許挫屈壓力 p_cr/Fs</td><td>'+f2(pAllow)+' kN/m²</td></tr>'+
-    '<tr><td>挫屈檢核 p/(p_cr/Fs)</td><td>'+statusCell(ratioB)+'</td></tr></table>';
-  var p='';
-  p+='【圓形鋼襯板工作井計算 · 環壓設計（Ring Compression）】\n\n';
-  p+='一、設計條件\n';
-  p+='  井深 H = '+f2(H)+' m，內徑 Di = '+f2(Di)+' m（R = '+f2(R)+' m）\n';
-  p+='  q = '+f2(q)+' kN/m²，γ = '+f2(r)+' kN/m³，側壓係數 K = '+K+'\n';
-  p+='  襯板 A = '+A+' cm²/m，I = '+I+' cm⁴/m，σa = '+sa+' MPa，挫屈 Fs = '+Fsb+'\n\n';
-  p+='二、設計側壓（井底最大）\n';
-  p+='  p = K(q+γH) = '+K+'×('+f2(q)+'+'+f2(r)+'×'+f2(H)+') = '+f2(pMax)+' kN/m²\n\n';
-  p+='三、環壓力與應力\n';
-  p+='  T = p×R = '+f2(pMax)+'×'+f2(R)+' = '+f2(T)+' kN/m\n';
-  p+='  σ = T/A = '+f2(T)+'×10³/'+A+'×10² = '+f2(sig)+' MPa\n';
-  p+='  σ/σa = '+f2(ratio)+(ratio<=1?' ≦ 1.0 ∴ OK':' ＞ 1.0 ∴ NG，請加厚襯板')+'\n\n';
-  p+='四、環挫屈檢核\n';
-  p+='  p_cr = 3EI/R³ = 3×2×10⁸×'+I+'×10⁻⁸/'+f2(R)+'³ = '+f2(pcr)+' kN/m²\n';
-  p+='  容許 = p_cr/Fs = '+f2(pAllow)+' kN/m²\n';
-  p+='  p/(p_cr/Fs) = '+f2(ratioB)+(ratioB<=1?' ≦ 1.0 ∴ OK':' ＞ 1.0 ∴ NG，請加厚襯板或增設環樑')+'\n\n';
-  p+='※ 襯板 A、I 值應依實際採用製造商型錄修正；地下水壓、開口補強、井底穩定另行檢討。\n';
+  var rows='',p='';
+  if(shape==='circle'){
+    var Di=v('lp-Di');
+    var R=Di/2;
+    var T=pMax*R;
+    var sig=T*1e3/(A*1e2);
+    var ratio=sig/sa;
+    var pcr=3*E*(I*1e-8)/Math.pow(R,3);
+    var pAllow=pcr/Fsb;
+    var ratioB=pMax/pAllow;
+    rows='<tr><td>井半徑 R</td><td>'+f2(R)+' m</td></tr>'+
+      '<tr><td>井底最大側壓 p＝K(q+γH)</td><td>'+f2(pMax)+' kN/m²</td></tr>'+
+      '<tr><td>環壓力 T＝p·R</td><td>'+f2(T)+' kN/m</td></tr>'+
+      '<tr><td>環壓應力 σ＝T/A</td><td>'+f2(sig)+' MPa</td></tr>'+
+      '<tr><td>環壓檢核 σ/σa</td><td>'+statusCell(ratio)+'</td></tr>'+
+      '<tr><td>臨界挫屈壓力 p_cr＝3EI/R³</td><td>'+f2(pcr)+' kN/m²</td></tr>'+
+      '<tr><td>容許挫屈壓力 p_cr/Fs</td><td>'+f2(pAllow)+' kN/m²</td></tr>'+
+      '<tr><td>挫屈檢核 p/(p_cr/Fs)</td><td>'+statusCell(ratioB)+'</td></tr>';
+    p+='【圓形鋼襯板工作井計算 · 環壓設計（Ring Compression）】\n\n';
+    p+='一、設計條件\n';
+    p+='  井深 H = '+f2(H)+' m，內徑 Di = '+f2(Di)+' m（R = '+f2(R)+' m）\n';
+    p+='  q = '+f2(q)+' kN/m²，γ = '+f2(r)+' kN/m³，側壓係數 K = '+K+'\n';
+    p+='  襯板 A = '+A+' cm²/m，I = '+I+' cm⁴/m，σa = '+sa+' MPa，挫屈 Fs = '+Fsb+'\n\n';
+    p+='二、設計側壓（井底最大）\n';
+    p+='  p = K(q+γH) = '+K+'×('+f2(q)+'+'+f2(r)+'×'+f2(H)+') = '+f2(pMax)+' kN/m²\n\n';
+    p+='三、環壓力與應力\n';
+    p+='  T = p×R = '+f2(pMax)+'×'+f2(R)+' = '+f2(T)+' kN/m\n';
+    p+='  σ = T/A = '+f2(sig)+' MPa\n';
+    p+='  σ/σa = '+f2(ratio)+(ratio<=1?' ≦ 1.0 ∴ OK':' ＞ 1.0 ∴ NG，請加厚襯板')+'\n\n';
+    p+='四、環挫屈檢核\n';
+    p+='  p_cr = 3EI/R³ = '+f2(pcr)+' kN/m²，容許 = p_cr/Fs = '+f2(pAllow)+' kN/m²\n';
+    p+='  p/(p_cr/Fs) = '+f2(ratioB)+(ratioB<=1?' ≦ 1.0 ∴ OK':' ＞ 1.0 ∴ NG，請加厚襯板或增設環樑')+'\n\n';
+  }else{
+    var La=v('lp-La'),Lb=v('lp-Lb');
+    if(Lb>La){var tmp=La;La=Lb;Lb=tmp;}
+    var a=La/2,b=Lb/2;
+    var rb=document.getElementById('lp-rb').value.split(',');
+    var Ar=parseFloat(rb[0]),Zr=parseFloat(rb[1]);
+    var Lv=v('lp-lv');
+    var rhoMax=a*a/b;   // 短軸端最大曲率半徑（環壓最大處）
+    var Rbar=(a+b)/2,e=(a-b)/2;
+    // 環樑承擔環向作用（每道環樑受載寬 Lv）
+    var Nr=pMax*rhoMax*Lv;      // kN 環樑軸壓
+    var Mr=pMax*(a*a-b*b)/4*Lv; // kN·m 環樑彎矩（一階估算 M≈p·e·R̄·Lv）
+    var sigNr=Nr*1e3/(Ar*1e2);
+    var sigMr=Mr*1e6/(Zr*1e3);
+    var sigR=sigNr+sigMr;
+    var ratioR=sigR/sa;
+    // 襯板垂直向承載（環樑間單向板）
+    var Ml=pMax*Lv*Lv/8; // kN·m/m
+    var sigL=Ml*1e6/(Zl*1e3);
+    var ratioL=sigL/sa;
+    rows='<tr><td>半長軸 a / 半短軸 b</td><td>'+f2(a)+' / '+f2(b)+' m</td></tr>'+
+      '<tr><td>最大曲率半徑 ρmax＝a²/b</td><td>'+f2(rhoMax)+' m</td></tr>'+
+      '<tr><td>井底最大側壓 p＝K(q+γH)</td><td>'+f2(pMax)+' kN/m²</td></tr>'+
+      '<tr><td>環樑軸壓 N＝p·ρmax·Lv</td><td>'+f2(Nr)+' kN</td></tr>'+
+      '<tr><td>環樑彎矩 M≈p(a²−b²)/4×Lv</td><td>'+f2(Mr)+' kN·m</td></tr>'+
+      '<tr><td>環樑應力 N/A＋M/Z</td><td>'+f2(sigNr)+' + '+f2(sigMr)+' MPa</td></tr>'+
+      '<tr><td>環樑檢核 σ/σa</td><td>'+statusCell(ratioR)+'</td></tr>'+
+      '<tr><td>襯板垂直彎矩 M＝p·Lv²/8</td><td>'+f2(Ml)+' kN·m/m</td></tr>'+
+      '<tr><td>襯板應力 σ＝M/Z</td><td>'+f2(sigL)+' MPa</td></tr>'+
+      '<tr><td>襯板檢核 σ/σa</td><td>'+statusCell(ratioL)+'</td></tr>';
+    p+='【橢圓形鋼襯板工作井計算 · 補強環樑＋襯板系統（簡化法）】\n\n';
+    p+='一、設計條件\n';
+    p+='  井深 H = '+f2(H)+' m，長徑 La = '+f2(La)+' m，短徑 Lb = '+f2(Lb)+' m\n';
+    p+='  （半長軸 a = '+f2(a)+' m，半短軸 b = '+f2(b)+' m）\n';
+    p+='  q = '+f2(q)+' kN/m²，γ = '+f2(r)+' kN/m³，側壓係數 K = '+K+'\n';
+    p+='  環樑 A = '+Ar+' cm²，Zx = '+Zr+' cm³，垂直間距 Lv = '+f2(Lv)+' m\n';
+    p+='  襯板 Z = '+Zl+' cm³/m，σa = '+sa+' MPa\n\n';
+    p+='二、設計側壓（井底最大）\n';
+    p+='  p = K(q+γH) = '+f2(pMax)+' kN/m²\n\n';
+    p+='三、結構系統\n';
+    p+='  橢圓形井環向非純壓（曲率不均產生彎矩），採「H 型鋼補強環樑＋\n';
+    p+='  鋼襯板」系統：環樑承擔環向軸壓與彎矩（受載寬 Lv），\n';
+    p+='  襯板承擔環樑間之垂直向單向板彎曲。\n\n';
+    p+='四、環樑檢核（短軸端，曲率半徑最大處）\n';
+    p+='  ρmax = a²/b = '+f2(rhoMax)+' m\n';
+    p+='  N = p×ρmax×Lv = '+f2(pMax)+'×'+f2(rhoMax)+'×'+f2(Lv)+' = '+f2(Nr)+' kN\n';
+    p+='  M ≈ p·e·R̄×Lv = p(a²−b²)/4×Lv = '+f2(Mr)+' kN·m（R̄='+f2(Rbar)+'m, e='+f2(e)+'m）\n';
+    p+='  σ = N/A + M/Zx = '+f2(sigNr)+' + '+f2(sigMr)+' = '+f2(sigR)+' MPa\n';
+    p+='  σ/σa = '+f2(ratioR)+(ratioR<=1?' ≦ 1.0 ∴ OK':' ＞ 1.0 ∴ NG，請加大環樑或縮小 Lv')+'\n\n';
+    p+='五、襯板檢核（環樑間垂直向）\n';
+    p+='  M = p×Lv²/8 = '+f2(Ml)+' kN·m/m\n';
+    p+='  σ = M/Z = '+f2(sigL)+' MPa，σ/σa = '+f2(ratioL)+(ratioL<=1?' ∴ OK':' ∴ NG，請加厚襯板或縮小 Lv')+'\n\n';
+    p+='※ 環樑彎矩為一階簡化估算；長短徑比大（La/Lb＞1.7）或深井（H＞10m）\n';
+    p+='  時，應以環框架（Frame）分析複核；正式設計依製造商型錄與技師簽證。\n';
+  }
+  p+='※ 襯板 A、I、Z 值應依實際採用製造商型錄修正；地下水壓、開口補強、井底穩定另行檢討。\n';
+  document.getElementById('lp-result').innerHTML='<table><tr><th>項目</th><th>數值</th></tr>'+rows+'</table>';
   document.getElementById('lp-proc-text').textContent=p;
   document.getElementById('lp-proc').style.display='';
-  if(window.innerWidth<768){var b=document.getElementById('mobTab-lp-r');if(b)switchMobTab('lp-r',b);}
+  if(window.innerWidth<768){var b2=document.getElementById('mobTab-lp-r');if(b2)switchMobTab('lp-r',b2);}
 }
 </script>
 <script>
