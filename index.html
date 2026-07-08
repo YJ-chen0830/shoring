@@ -1,0 +1,462 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>擋土支撐計畫 | Excavation Shoring Design</title>
+<script src="https://yj-chen0830.github.io/jrh-core/jrh-core.js?v=1" defer></script>
+<style>
+  :root{--navy:#0b1f3a;--navy2:#13284a;--gold:#c9a14a;--gold2:#e0bf6e;--bg:#f5f3ee;--ink:#1c2530;--line:#d8d2c2;}
+  *{box-sizing:border-box;}
+  body{margin:0;font-family:"Noto Sans TC","Segoe UI",sans-serif;background:var(--bg);color:var(--ink);}
+  header{background:linear-gradient(135deg,var(--navy),var(--navy2));color:#f5f3ee;padding:28px 32px;}
+  header h1{margin:0;font-size:22px;}
+  header span{color:var(--gold2);font-size:13px;display:block;margin-top:4px;}
+  main{max-width:1060px;margin:0 auto;padding:28px 20px 60px;}
+  .tabs{display:flex;gap:8px;margin-bottom:20px;}
+  .tab{padding:9px 20px;border:2px solid var(--navy);border-radius:7px;cursor:pointer;font-weight:600;font-size:14px;background:#fff;color:var(--navy);}
+  .tab.active{background:var(--navy);color:#fff;}
+  .panel{display:none;}.panel.active{display:block;}
+  .grid{display:grid;grid-template-columns:340px 1fr;gap:24px;}
+  @media(max-width:820px){.grid{grid-template-columns:1fr;}}
+  .card{background:#fff;border:1px solid var(--line);border-radius:12px;padding:22px 24px;box-shadow:0 2px 8px rgba(0,0,0,.05);}
+  .card h2{font-size:14.5px;margin:0 0 18px;color:var(--navy);font-weight:700;display:flex;align-items:center;gap:8px;border-bottom:2px solid var(--gold);padding-bottom:10px;}
+  label{display:block;font-size:12px;color:#666;margin:10px 0 4px;font-weight:500;}
+  input,select{width:100%;padding:8px 11px;border:1.5px solid var(--line);border-radius:7px;font-size:13.5px;background:#fafaf8;transition:border-color .15s;}
+  input:focus,select:focus{outline:none;border-color:var(--gold);}
+  .sec{font-size:12px;font-weight:700;color:var(--navy);margin:16px 0 6px;border-left:4px solid var(--gold);padding-left:9px;letter-spacing:.04em;text-transform:uppercase;}
+  .note{font-size:11.5px;color:#999;margin-top:12px;line-height:1.75;background:#f9f7f2;border-radius:6px;padding:9px 12px;}
+  button.calc-btn{margin-top:16px;width:100%;padding:12px;border:none;border-radius:8px;background:var(--navy);color:#fff;font-size:14.5px;font-weight:700;cursor:pointer;letter-spacing:.03em;transition:background .15s,transform .1s;}
+  button.calc-btn:hover{background:var(--navy2);}
+  button.calc-btn:active{transform:scale(.98);}
+  button.pro-btn{margin-top:12px;width:100%;padding:12px;border:none;border-radius:8px;background:var(--gold);color:var(--navy);font-size:14.5px;font-weight:700;cursor:pointer;letter-spacing:.03em;transition:filter .15s,transform .1s;}
+  button.pro-btn:hover{filter:brightness(1.08);}
+  table{width:100%;border-collapse:collapse;margin-top:10px;border:1px solid var(--line);border-radius:8px;overflow:hidden;}
+  th{background:var(--navy);color:#f5f3ee;font-weight:600;font-size:12px;padding:9px 10px;text-align:left;-webkit-print-color-adjust:exact;print-color-adjust:exact;}
+  td{padding:9px 10px;font-size:13px;border-bottom:1px solid var(--line);}
+  tr:nth-child(even) td{background:#f9f7f3;}
+  td:last-child{text-align:right;font-weight:700;}
+  .ok{color:#1a7d3a;font-weight:700;}.ng{color:#c0392b;font-weight:700;}
+  details.proc{margin-top:16px;border:1px solid var(--line);border-radius:8px;background:#fafaf8;overflow:hidden;}
+  details.proc summary{cursor:pointer;padding:10px 14px;font-weight:700;font-size:13px;color:var(--navy);user-select:none;list-style:none;display:flex;align-items:center;gap:6px;}
+  details.proc summary::before{content:"▶";font-size:10px;transition:transform .2s;}
+  details[open].proc summary::before{transform:rotate(90deg);}
+  details.proc pre{margin:0;padding:12px 16px 16px;font-family:"Courier New",monospace;font-size:11.5px;line-height:1.9;white-space:pre-wrap;color:#2c3e50;border-top:1px solid var(--line);}
+  .row2{display:grid;grid-template-columns:1fr 1fr;gap:10px;}
+  .proj-section{background:#fff;border:1px solid var(--gold);border-radius:10px;padding:18px 22px;margin-bottom:20px;}
+  .proj-section h3{margin:0 0 12px;color:var(--navy);font-size:14px;font-weight:700;}
+  .proj-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;}
+  @media(max-width:600px){.proj-grid{grid-template-columns:1fr;}}
+  .mob-tabs{display:none;}
+  @media screen and (max-width:767px){
+    .mob-tabs{display:flex;background:var(--bg);border-bottom:2px solid var(--line);margin:0 -20px 0;padding:0 20px;}
+    .mob-tab{flex:1;padding:11px 4px;text-align:center;font-size:13.5px;font-weight:700;color:#888;cursor:pointer;background:transparent;border:none;border-bottom:3px solid transparent;transition:color .15s,border-color .15s;}
+    .mob-tab.active{color:var(--navy);border-bottom-color:var(--gold);}
+    .grid{display:block;}
+    .grid>.card{display:none;}
+    .grid>.card.mob-active{display:block;}
+  }
+  @media print{
+    header,.tabs,.no-print{display:none!important;}
+    body{background:#fff;margin:0;font-size:9pt;line-height:1.5;color:#111;}
+    main{padding:0;max-width:100%!important;}
+    .pane,.panel{display:block!important;}
+    .grid{grid-template-columns:1fr!important;gap:10pt!important;}
+    .card{box-shadow:none!important;border:1px solid #ccc!important;border-radius:4pt!important;padding:10pt 12pt!important;break-inside:avoid;}
+    .card h2{font-size:10.5pt!important;padding-bottom:6pt!important;margin-bottom:9pt!important;}
+    label{font-size:8pt!important;margin:6pt 0 2pt!important;}
+    .sec{font-size:8pt!important;margin:10pt 0 4pt!important;}
+    .note{font-size:7.5pt!important;padding:6pt 9pt!important;}
+    table{border:1px solid #bbb!important;border-radius:0!important;overflow:visible!important;margin-top:6pt!important;}
+    th{font-size:8pt!important;padding:5pt 7pt!important;background:#0b1f3a!important;color:#fff!important;-webkit-print-color-adjust:exact;print-color-adjust:exact;}
+    td{font-size:8.5pt!important;padding:5pt 7pt!important;}
+    tr:nth-child(even) td{background:#f5f5f5!important;}
+    details.proc{display:block!important;margin-top:10pt!important;border:1pt solid #0b1f3a!important;border-radius:4pt!important;break-inside:avoid;background:#f9f9f6!important;}
+    details.proc>summary{display:none!important;}
+    details.proc::before{content:"📋  計算過程（供第三方檢核）";display:block;font-weight:700;font-size:8pt;color:#0b1f3a;padding:6pt 10pt 4pt;border-bottom:1px solid #ccc;letter-spacing:.04em;}
+    details.proc>pre{font-size:7pt!important;line-height:1.65!important;white-space:pre-wrap!important;padding:6pt 10pt 10pt!important;color:#1a1a1a!important;font-family:"Courier New",monospace!important;}
+    .proj-section{border:1.5pt solid #0b1f3a!important;border-radius:4pt!important;}
+    button.pro-btn,button.calc-btn{display:none!important;}
+    @page{margin:15mm 12mm;size:A4;}
+  }
+</style>
+</head>
+<body data-tool="sh">
+<header>
+  <h1>⛏ 擋土支撐計畫</h1>
+  <span>Excavation Shoring Design · 懸臂式鋼板樁 / 單層水平支撐 · Rankine 土壓</span>
+</header>
+<main>
+
+<div class="proj-section no-print" id="projSection">
+  <h3>📁 專案資訊（列印時帶入計算書封面）</h3>
+  <div class="proj-grid">
+    <div><label>工程名稱</label><input id="pj-name" placeholder="○○大樓新建工程"></div>
+    <div><label>工程地點</label><input id="pj-loc" placeholder="台北市○○區"></div>
+    <div><label>承造廠商</label><input id="pj-contractor" placeholder="○○營造股份有限公司"></div>
+    <div><label>文件編號</label><input id="pj-docno" placeholder="SH-CAL-001"></div>
+    <div><label>計算者</label><input id="pj-calc" placeholder="姓名"></div>
+    <div><label>審核者</label><input id="pj-review" placeholder="姓名"></div>
+    <div><label>計算日期</label><input id="pj-date" type="date"></div>
+  </div>
+</div>
+
+<div class="tabs no-print">
+  <div class="tab active" id="tab-ct" onclick="switchTab('ct')">懸臂式鋼板樁</div>
+  <div class="tab" id="tab-st" onclick="switchTab('st')">單層水平支撐</div>
+</div>
+
+<!-- ===== 懸臂式 ===== -->
+<div id="panel-ct" class="panel active">
+<div class="mob-tabs">
+  <button class="mob-tab active" onclick="switchMobTab('ct-in',this)">📋 輸入參數</button>
+  <button class="mob-tab" id="mobTab-ct-r" onclick="switchMobTab('ct-r',this)">📊 計算結果</button>
+</div>
+<div class="grid">
+  <div class="card mob-active" data-tab="ct-in">
+    <h2>懸臂式輸入（砂質土 · 已降水）</h2>
+    <div class="sec">開挖條件</div>
+    <div class="row2">
+      <div><label>開挖深度 H (m)</label><input id="ct-H" type="number" value="3.0" step="0.1" min="0.5"></div>
+      <div><label>地表超載 q (kN/m²)</label><input id="ct-q" type="number" value="10" step="1" min="0"></div>
+    </div>
+    <div class="sec">土壤參數</div>
+    <div class="row2">
+      <div><label>單位重 γ (kN/m³)</label><input id="ct-r" type="number" value="18" step="0.5"></div>
+      <div><label>內摩擦角 φ (°)</label><input id="ct-phi" type="number" value="30" step="1" min="15" max="45"></div>
+    </div>
+    <label>被動土壓安全係數 Fs</label>
+    <input id="ct-fs" type="number" value="1.5" step="0.1" min="1">
+    <div class="sec">鋼板樁</div>
+    <label>型號</label>
+    <select id="ct-sp" onchange="ctSpChange()">
+      <option value="874">FSP-II（Z=874 cm³/m）</option>
+      <option value="1340" selected>FSP-III（Z=1340 cm³/m）</option>
+      <option value="2270">FSP-IV（Z=2270 cm³/m）</option>
+      <option value="3150">FSP-VL（Z=3150 cm³/m）</option>
+      <option value="custom">自訂斷面模數</option>
+    </select>
+    <div id="ct-spz-wrap" style="display:none"><label>斷面模數 Z (cm³/m)</label><input id="ct-spz" type="number" value="1340"></div>
+    <label>容許彎曲應力 σa (MPa)</label>
+    <input id="ct-sa" type="number" value="210" step="5">
+    <button class="calc-btn" onclick="calcCant()">計算懸臂式擋土</button>
+    <div class="note">適用均質砂質地層、無地下水（或已降水）條件。黏土層、多層土、高水位應另以完整分析檢討。SY295 鋼板樁假設工程容許應力常取 σa≈210 MPa（fy×0.7 上調），可依規範修改。</div>
+  </div>
+  <div class="card" data-tab="ct-r">
+    <h2>懸臂式結果</h2>
+    <div id="ct-result"><p style="color:#888">尚未計算</p></div>
+    <details class="proc" id="ct-proc" style="display:none">
+      <summary>📋 計算過程（供第三方檢核）</summary>
+      <pre id="ct-proc-text"></pre>
+    </details>
+    <button class="pro-btn no-print" onclick="openPro()">📄 產出計算書 PDF</button>
+  </div>
+</div>
+</div>
+
+<!-- ===== 單層支撐 ===== -->
+<div id="panel-st" class="panel">
+<div class="mob-tabs">
+  <button class="mob-tab active" onclick="switchMobTab('st-in',this)">📋 輸入參數</button>
+  <button class="mob-tab" id="mobTab-st-r" onclick="switchMobTab('st-r',this)">📊 計算結果</button>
+</div>
+<div class="grid">
+  <div class="card mob-active" data-tab="st-in">
+    <h2>單層支撐輸入（自由端支承法）</h2>
+    <div class="sec">開挖條件</div>
+    <div class="row2">
+      <div><label>開挖深度 H (m)</label><input id="st-H" type="number" value="5.0" step="0.1" min="1"></div>
+      <div><label>支撐位置深度 d₁ (m)</label><input id="st-d1" type="number" value="1.0" step="0.1" min="0"></div>
+    </div>
+    <label>地表超載 q (kN/m²)</label>
+    <input id="st-q" type="number" value="10" step="1" min="0">
+    <div class="sec">土壤參數</div>
+    <div class="row2">
+      <div><label>單位重 γ (kN/m³)</label><input id="st-r" type="number" value="18" step="0.5"></div>
+      <div><label>內摩擦角 φ (°)</label><input id="st-phi" type="number" value="30" step="1" min="15" max="45"></div>
+    </div>
+    <label>被動土壓安全係數 Fs</label>
+    <input id="st-fs" type="number" value="1.5" step="0.1" min="1">
+    <div class="sec">鋼板樁</div>
+    <label>型號</label>
+    <select id="st-sp" onchange="stSpChange()">
+      <option value="874">FSP-II（Z=874 cm³/m）</option>
+      <option value="1340" selected>FSP-III（Z=1340 cm³/m）</option>
+      <option value="2270">FSP-IV（Z=2270 cm³/m）</option>
+      <option value="3150">FSP-VL（Z=3150 cm³/m）</option>
+      <option value="custom">自訂斷面模數</option>
+    </select>
+    <div id="st-spz-wrap" style="display:none"><label>斷面模數 Z (cm³/m)</label><input id="st-spz" type="number" value="1340"></div>
+    <label>容許彎曲應力 σa (MPa)</label>
+    <input id="st-sa" type="number" value="210" step="5">
+    <div class="sec">水平支撐（H 型鋼）</div>
+    <label>支撐斷面</label>
+    <select id="st-hs">
+      <option value="92.18,6.29,867">H250×250×9×14（A=92.2cm², r=6.29cm）</option>
+      <option value="119.8,7.51,1360" selected>H300×300×10×15（A=119.8cm², r=7.51cm）</option>
+      <option value="173.9,8.84,2300">H350×350×12×19（A=173.9cm², r=8.84cm）</option>
+      <option value="218.7,10.1,3330">H400×400×13×21（A=218.7cm², r=10.1cm）</option>
+    </select>
+    <div class="row2">
+      <div><label>支撐水平間距 s (m)</label><input id="st-s" type="number" value="4.0" step="0.5" min="1"></div>
+      <div><label>支撐挫屈長度 Lk (m)</label><input id="st-lk" type="number" value="8.0" step="0.5" min="1"></div>
+    </div>
+    <label>鋼材降伏強度 Fy (MPa)</label>
+    <input id="st-fy" type="number" value="235" step="5">
+    <div class="sec">橫擋（圍囹）</div>
+    <label>橫擋斷面</label>
+    <select id="st-wl">
+      <option value="867">H250×250（Zx=867 cm³）</option>
+      <option value="1360" selected>H300×300（Zx=1360 cm³）</option>
+      <option value="2300">H350×350（Zx=2300 cm³）</option>
+      <option value="3330">H400×400（Zx=3330 cm³）</option>
+    </select>
+    <button class="calc-btn" onclick="calcStrut()">計算單層支撐擋土</button>
+    <div class="note">自由端支承法（Free Earth Support）。支撐軸力容許依 AISC ASD 挫屈公式計算。多層支撐（2 層以上）應以彈塑性法或框架分析另行檢討。</div>
+  </div>
+  <div class="card" data-tab="st-r">
+    <h2>單層支撐結果</h2>
+    <div id="st-result"><p style="color:#888">尚未計算</p></div>
+    <details class="proc" id="st-proc" style="display:none">
+      <summary>📋 計算過程（供第三方檢核）</summary>
+      <pre id="st-proc-text"></pre>
+    </details>
+    <button class="pro-btn no-print" onclick="openPro()">📄 產出計算書 PDF</button>
+  </div>
+</div>
+</div>
+
+</main>
+<script>
+function switchTab(id){
+  ['ct','st'].forEach(function(t){
+    document.getElementById('tab-'+t).classList.toggle('active',t===id);
+    document.getElementById('panel-'+t).classList.toggle('active',t===id);
+  });
+}
+function switchMobTab(name,btn){
+  btn.parentElement.querySelectorAll('.mob-tab').forEach(function(t){t.classList.remove('active');});
+  btn.classList.add('active');
+  btn.parentElement.nextElementSibling.querySelectorAll('.card').forEach(function(c){
+    c.classList.toggle('mob-active',c.dataset.tab===name);
+  });
+}
+function ctSpChange(){document.getElementById('ct-spz-wrap').style.display=document.getElementById('ct-sp').value==='custom'?'':'none';}
+function stSpChange(){document.getElementById('st-spz-wrap').style.display=document.getElementById('st-sp').value==='custom'?'':'none';}
+function openPro(){ JRH.checkEmail(function(){ jrhPrint('擋土支撐計算書'); }); }
+function v(id){return parseFloat(document.getElementById(id).value)||0;}
+function f2(x){return x.toFixed(2);}
+function f3(x){return x.toFixed(3);}
+function bisect(f,a,b,tol){
+  var fa=f(a),fb=f(b);
+  if(fa*fb>0)return NaN;
+  for(var i=0;i<100;i++){
+    var m=(a+b)/2,fm=f(m);
+    if(Math.abs(fm)<tol||((b-a)/2)<1e-6)return m;
+    if(fa*fm<0){b=m;fb=fm;}else{a=m;fa=fm;}
+  }
+  return (a+b)/2;
+}
+function statusCell(ratio){
+  return ratio<=1.0 ? '<span class="ok">OK（'+f2(ratio)+'）</span>' : '<span class="ng">NG（'+f2(ratio)+'）</span>';
+}
+
+/* ── 懸臂式 ── */
+function calcCant(){
+  var H=v('ct-H'),q=v('ct-q'),r=v('ct-r'),phi=v('ct-phi'),Fs=v('ct-fs'),sa=v('ct-sa');
+  var Z=document.getElementById('ct-sp').value==='custom'?v('ct-spz'):parseFloat(document.getElementById('ct-sp').value);
+  var rad=phi*Math.PI/180;
+  var Ka=Math.pow(Math.tan(Math.PI/4-rad/2),2);
+  var Kp=Math.pow(Math.tan(Math.PI/4+rad/2),2);
+  var Kpd=Kp/Fs;
+  // 對樁趾取矩：主動矩 = 被動矩，解貫入深度 D
+  function fD(D){
+    var L=H+D;
+    var Ma=Ka*q*L*(L/2)+0.5*Ka*r*L*L*(L/3);
+    var Mp=0.5*Kpd*r*D*D*(D/3);
+    return Mp-Ma;
+  }
+  var D0=bisect(fD,0.05,60,1e-4);
+  if(isNaN(D0)){document.getElementById('ct-result').innerHTML='<p class="ng">無法求得貫入深度（土壓平衡不成立），請檢查參數。</p>';return;}
+  var D=1.2*D0;
+  // 零剪力點（開挖面以下 x）：主動推力 = 被動推力
+  function fx(x){
+    var L=H+x;
+    return Ka*q*L+0.5*Ka*r*L*L-0.5*Kpd*r*x*x;
+  }
+  var x0=bisect(fx,0.01,D0+H,1e-4);
+  var Lx=H+x0;
+  var Mmax=Ka*q*Lx*(Lx/2)+0.5*Ka*r*Lx*Lx*(Lx/3)-0.5*Kpd*r*x0*x0*(x0/3); // kN·m/m
+  var sig=Mmax*1e6/(Z*1e3); // N/mm² = MPa (M[kN·m/m]→N·mm/m ÷ Z[cm³/m]→mm³/m)
+  var ratio=sig/sa;
+  var totalL=H+D;
+  document.getElementById('ct-result').innerHTML=
+    '<table><tr><th>項目</th><th>數值</th></tr>'+
+    '<tr><td>主動土壓係數 Ka</td><td>'+f3(Ka)+'</td></tr>'+
+    '<tr><td>被動土壓係數 Kp / 設計值 Kp′</td><td>'+f3(Kp)+' / '+f3(Kpd)+'</td></tr>'+
+    '<tr><td>理論貫入深度 D₀</td><td>'+f2(D0)+' m</td></tr>'+
+    '<tr><td>設計貫入深度 D＝1.2 D₀</td><td>'+f2(D)+' m</td></tr>'+
+    '<tr><td>鋼板樁總長 H＋D</td><td>'+f2(totalL)+' m</td></tr>'+
+    '<tr><td>最大彎矩 Mmax</td><td>'+f2(Mmax)+' kN·m/m</td></tr>'+
+    '<tr><td>彎曲應力 σ＝M/Z</td><td>'+f2(sig)+' MPa</td></tr>'+
+    '<tr><td>應力檢核 σ/σa</td><td>'+statusCell(ratio)+'</td></tr></table>';
+  var p='';
+  p+='【懸臂式鋼板樁擋土計算 · Rankine 土壓 · 砂質土（c=0）已降水】\n\n';
+  p+='一、設計條件\n';
+  p+='  開挖深度 H = '+f2(H)+' m，地表超載 q = '+f2(q)+' kN/m²\n';
+  p+='  γ = '+f2(r)+' kN/m³，φ = '+phi+'°，被動土壓安全係數 Fs = '+Fs+'\n';
+  p+='  鋼板樁 Z = '+Z+' cm³/m，σa = '+sa+' MPa\n\n';
+  p+='二、土壓係數\n';
+  p+='  Ka = tan²(45°−φ/2) = tan²('+f2(45-phi/2)+'°) = '+f3(Ka)+'\n';
+  p+='  Kp = tan²(45°+φ/2) = tan²('+f2(45+phi/2)+'°) = '+f3(Kp)+'\n';
+  p+='  設計被動 Kp′ = Kp/Fs = '+f3(Kp)+'/'+Fs+' = '+f3(Kpd)+'\n\n';
+  p+='三、貫入深度（對樁趾取矩，Ma = Mp）\n';
+  p+='  主動側（總長 L=H+D）：\n';
+  p+='    P1 = Ka·q·L（超載），力臂 L/2\n';
+  p+='    P2 = ½·Ka·γ·L²（土壓三角形），力臂 L/3\n';
+  p+='  被動側（開挖面以下 D）：Pp = ½·Kp′·γ·D²，力臂 D/3\n';
+  p+='  解得理論貫入深度 D₀ = '+f2(D0)+' m\n';
+  p+='  設計貫入深度 D = 1.2×D₀ = '+f2(D)+' m（常規增加 20% 安全裕度）\n';
+  p+='  鋼板樁總長 = H + D = '+f2(H)+' + '+f2(D)+' = '+f2(totalL)+' m\n\n';
+  p+='四、最大彎矩（零剪力點）\n';
+  p+='  開挖面以下 x = '+f2(x0)+' m 處剪力為零\n';
+  p+='  Mmax = ΣMa − ΣMp = '+f2(Mmax)+' kN·m/m\n\n';
+  p+='五、鋼板樁應力檢核\n';
+  p+='  σ = Mmax/Z = '+f2(Mmax)+'×10⁶ / '+Z+'×10³ = '+f2(sig)+' MPa\n';
+  p+='  σ/σa = '+f2(sig)+'/'+sa+' = '+f2(ratio)+(ratio<=1?' ≦ 1.0  ∴ OK':' ＞ 1.0  ∴ NG，請提高斷面或改用支撐式')+'\n';
+  document.getElementById('ct-proc-text').textContent=p;
+  document.getElementById('ct-proc').style.display='';
+  if(window.innerWidth<768){var b=document.getElementById('mobTab-ct-r');if(b)switchMobTab('ct-r',b);}
+}
+
+/* ── 單層支撐（自由端支承法） ── */
+function calcStrut(){
+  var H=v('st-H'),d1=v('st-d1'),q=v('st-q'),r=v('st-r'),phi=v('st-phi'),Fs=v('st-fs'),sa=v('st-sa');
+  var Z=document.getElementById('st-sp').value==='custom'?v('st-spz'):parseFloat(document.getElementById('st-sp').value);
+  var hs=document.getElementById('st-hs').value.split(',');
+  var A=parseFloat(hs[0]),rmin=parseFloat(hs[1]);
+  var s=v('st-s'),Lk=v('st-lk'),Fy=v('st-fy');
+  var Zw=parseFloat(document.getElementById('st-wl').value);
+  if(d1>=H){document.getElementById('st-result').innerHTML='<p class="ng">支撐位置深度須小於開挖深度。</p>';return;}
+  var rad=phi*Math.PI/180;
+  var Ka=Math.pow(Math.tan(Math.PI/4-rad/2),2);
+  var Kp=Math.pow(Math.tan(Math.PI/4+rad/2),2);
+  var Kpd=Kp/Fs;
+  // 對支撐點取矩解 D
+  function fD(D){
+    var L=H+D;
+    var Ma=Ka*q*L*(L/2-d1)+0.5*Ka*r*L*L*(2*L/3-d1);
+    var Mp=0.5*Kpd*r*D*D*(H+2*D/3-d1);
+    return Mp-Ma;
+  }
+  var D0=bisect(fD,0.05,60,1e-4);
+  if(isNaN(D0)){document.getElementById('st-result').innerHTML='<p class="ng">無法求得貫入深度，請檢查參數（支撐位置可能過深）。</p>';return;}
+  var D=1.2*D0;
+  var L0=H+D0;
+  var PaT=Ka*q*L0+0.5*Ka*r*L0*L0;
+  var PpT=0.5*Kpd*r*D0*D0;
+  var R=PaT-PpT; // kN/m 支撐反力
+  // 支撐與橫擋
+  var N=R*s; // kN
+  var lam=Lk*100/rmin;
+  var E=200000,FyM=Fy;
+  var Cc=Math.sqrt(2*Math.PI*Math.PI*E/FyM);
+  var Fa;
+  if(lam<=Cc){
+    var t=lam/Cc;
+    Fa=(1-t*t/2)*FyM/(5/3+3*t/8-t*t*t/8);
+  }else{
+    Fa=12*Math.PI*Math.PI*E/(23*lam*lam);
+  }
+  var sigN=N*1e3/(A*1e2); // MPa
+  var ratioN=sigN/Fa;
+  var Mw=R*s*s/8; // kN·m 橫擋
+  var sigW=Mw*1e6/(Zw*1e3);
+  var ratioW=sigW/sa;
+  // 板樁最大彎矩：支撐以下零剪力
+  function fx(z){
+    return Ka*q*z+0.5*Ka*r*z*z-R;
+  }
+  var z0=bisect(fx,d1+0.001,H+D0,1e-4);
+  var Mmax=NaN,sigP=NaN,ratioP=NaN;
+  if(!isNaN(z0)){
+    Mmax=R*(z0-d1)-(Ka*q*z0*(z0/2)+0.5*Ka*r*z0*z0*(z0/3));
+    Mmax=Math.abs(Mmax);
+    sigP=Mmax*1e6/(Z*1e3);
+    ratioP=sigP/sa;
+  }
+  var totalL=H+D;
+  document.getElementById('st-result').innerHTML=
+    '<table><tr><th>項目</th><th>數值</th></tr>'+
+    '<tr><td>Ka / Kp′</td><td>'+f3(Ka)+' / '+f3(Kpd)+'</td></tr>'+
+    '<tr><td>理論貫入深度 D₀ / 設計 D</td><td>'+f2(D0)+' / '+f2(D)+' m</td></tr>'+
+    '<tr><td>鋼板樁總長 H＋D</td><td>'+f2(totalL)+' m</td></tr>'+
+    '<tr><td>支撐反力 R（每米）</td><td>'+f2(R)+' kN/m</td></tr>'+
+    '<tr><td>支撐軸力 N＝R×s</td><td>'+f2(N)+' kN</td></tr>'+
+    '<tr><td>細長比 λ / 容許壓應力 Fa</td><td>'+f2(lam)+' / '+f2(Fa)+' MPa</td></tr>'+
+    '<tr><td>支撐應力檢核 σ/Fa</td><td>'+statusCell(ratioN)+'</td></tr>'+
+    '<tr><td>橫擋彎矩 M＝R·s²/8</td><td>'+f2(Mw)+' kN·m</td></tr>'+
+    '<tr><td>橫擋應力檢核 σ/σa</td><td>'+statusCell(ratioW)+'</td></tr>'+
+    (isNaN(Mmax)?'':'<tr><td>板樁最大彎矩 Mmax</td><td>'+f2(Mmax)+' kN·m/m</td></tr>'+
+    '<tr><td>板樁應力檢核 σ/σa</td><td>'+statusCell(ratioP)+'</td></tr>')+
+    '</table>';
+  var p='';
+  p+='【單層水平支撐擋土計算 · 自由端支承法 · 砂質土（c=0）已降水】\n\n';
+  p+='一、設計條件\n';
+  p+='  H = '+f2(H)+' m，支撐深度 d₁ = '+f2(d1)+' m，q = '+f2(q)+' kN/m²\n';
+  p+='  γ = '+f2(r)+' kN/m³，φ = '+phi+'°，Fs = '+Fs+'\n';
+  p+='  鋼板樁 Z = '+Z+' cm³/m；支撐 A = '+A+' cm²，rmin = '+rmin+' cm，s = '+f2(s)+' m，Lk = '+f2(Lk)+' m，Fy = '+Fy+' MPa\n';
+  p+='  橫擋 Zx = '+Zw+' cm³，σa = '+sa+' MPa\n\n';
+  p+='二、土壓係數\n';
+  p+='  Ka = tan²(45°−φ/2) = '+f3(Ka)+'；Kp′ = Kp/Fs = '+f3(Kp)+'/'+Fs+' = '+f3(Kpd)+'\n\n';
+  p+='三、貫入深度（對支撐點取矩）\n';
+  p+='  主動（L=H+D）：P1=Ka·q·L 臂(L/2−d₁)；P2=½Ka·γ·L² 臂(2L/3−d₁)\n';
+  p+='  被動：Pp=½Kp′·γ·D² 臂(H+2D/3−d₁)\n';
+  p+='  解得 D₀ = '+f2(D0)+' m，設計 D = 1.2 D₀ = '+f2(D)+' m\n';
+  p+='  鋼板樁總長 = '+f2(totalL)+' m\n\n';
+  p+='四、支撐反力（水平力平衡）\n';
+  p+='  ΣPa = '+f2(PaT)+' kN/m，ΣPp = '+f2(PpT)+' kN/m\n';
+  p+='  R = ΣPa − ΣPp = '+f2(R)+' kN/m\n';
+  p+='  支撐軸力 N = R×s = '+f2(R)+'×'+f2(s)+' = '+f2(N)+' kN\n\n';
+  p+='五、支撐壓桿檢核（AISC ASD）\n';
+  p+='  λ = Lk/rmin = '+f2(Lk*100)+'/'+rmin+' = '+f2(lam)+'，Cc = √(2π²E/Fy) = '+f2(Cc)+'\n';
+  p+='  Fa = '+f2(Fa)+' MPa\n';
+  p+='  σ = N/A = '+f2(N)+'×10³/'+f2(A)+'×10² = '+f2(sigN)+' MPa\n';
+  p+='  σ/Fa = '+f2(ratioN)+(ratioN<=1?' ≦ 1.0 ∴ OK':' ＞ 1.0 ∴ NG，請加大斷面或縮短 Lk（加設中間樁）')+'\n\n';
+  p+='六、橫擋檢核（簡支 M=R·s²/8）\n';
+  p+='  M = '+f2(R)+'×'+f2(s)+'²/8 = '+f2(Mw)+' kN·m\n';
+  p+='  σ = M/Zx = '+f2(sigW)+' MPa，σ/σa = '+f2(ratioW)+(ratioW<=1?' ∴ OK':' ∴ NG')+'\n\n';
+  if(!isNaN(Mmax)){
+    p+='七、鋼板樁彎矩檢核\n';
+    p+='  零剪力深度 z₀ = '+f2(z0)+' m\n';
+    p+='  Mmax = '+f2(Mmax)+' kN·m/m，σ = '+f2(sigP)+' MPa\n';
+    p+='  σ/σa = '+f2(ratioP)+(ratioP<=1?' ∴ OK':' ∴ NG')+'\n';
+  }
+  document.getElementById('st-proc-text').textContent=p;
+  document.getElementById('st-proc').style.display='';
+  if(window.innerWidth<768){var b=document.getElementById('mobTab-st-r');if(b)switchMobTab('st-r',b);}
+}
+</script>
+<script>
+window.jrhDocMeta={
+ "doc": "擋土支撐計算書",
+ "codes": [
+  "內政部「建築物基礎構造設計規範」第六章（擋土式開挖）",
+  "內政部「建築技術規則」建築構造編",
+  "勞動部「營造安全衛生設施標準」第 71～78 條（露天開挖）",
+  "Rankine 土壓力理論、自由端支承法（Free Earth Support Method）",
+  "AISC ASD 壓桿容許應力公式"
+ ],
+ "notes": [
+  "本計算適用均質砂質地層、無地下水（或已完成降水）之條件；黏土層、互層地質或高地下水位，應以完整土壓分析（含水壓）另行檢討。",
+  "土壤參數（γ、φ、c）應依地質鑽探報告及室內試驗結果選用。",
+  "開挖深度超過 1.5 公尺應設擋土支撐；深開挖（超過規範規定）應辦理監測（壁體傾斜、支撐軸力、鄰房沉陷等）。",
+  "支撐架設後應施加預壓力並鎖定，拆撐應依回築進度逐層換撐。",
+  "開挖底面應檢核隆起、砂湧（管湧）穩定性，本計算未包含者應另行檢討。",
+  "鄰近既有結構物、管線時，應評估開挖引致之地盤變位影響。",
+  "本計算書應經大地工程技師或結構技師簽證後，始得作為正式送審文件。"
+ ]
+};
+</script>
+</body>
+</html>
