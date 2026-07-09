@@ -256,7 +256,11 @@
       <option value="396">50 kg/m 鋼軌 單支（Z≈396 cm³）</option>
       <option value="590">37 kg/m 鋼軌 雙拼（Z≈590 cm³）</option>
       <option value="792" selected>50 kg/m 鋼軌 雙拼（Z≈792 cm³）</option>
-      <option value="1360">H300×300（Zx=1360 cm³）</option>
+      <option value="472">H200×200×8×12（Zx=472 cm³）</option>
+      <option value="867">H250×250×9×14（Zx=867 cm³）</option>
+      <option value="1360">H300×300×10×15（Zx=1360 cm³）</option>
+      <option value="2300">H350×350×12×19（Zx=2300 cm³）</option>
+      <option value="3330">H400×400×13×21（Zx=3330 cm³）</option>
       <option value="custom">自訂斷面模數</option>
     </select>
     <div id="rp-z-wrap" style="display:none"><label>斷面模數 Z (cm³)</label><input id="rp-z" type="number" value="396"></div>
@@ -266,8 +270,41 @@
     </div>
     <label>容許彎曲應力 σa (MPa)</label>
     <input id="rp-sa" type="number" value="140" step="5">
+    <div class="sec">支撐型式</div>
+    <select id="rp-sys" onchange="rpSysChange()">
+      <option value="cant" selected>懸臂式（無橫撐）</option>
+      <option value="strut">單層橫撐（自由端支承法）</option>
+    </select>
+    <div id="rp-strut-wrap" style="display:none">
+      <div class="row2">
+        <div><label>支撐位置深度 d₁ (m)</label><input id="rp-d1" type="number" value="0.5" step="0.1" min="0"></div>
+        <div><label>支撐水平間距 ss (m)</label><input id="rp-ss" type="number" value="4.0" step="0.5" min="1"></div>
+      </div>
+      <label>支撐斷面（H 型鋼）</label>
+      <select id="rp-hs">
+        <option value="63.53,5.02">H200×200×8×12（A=63.5cm², r=5.02cm）</option>
+        <option value="92.18,6.29" selected>H250×250×9×14（A=92.2cm², r=6.29cm）</option>
+        <option value="119.8,7.51">H300×300×10×15（A=119.8cm², r=7.51cm）</option>
+        <option value="173.9,8.84">H350×350×12×19（A=173.9cm², r=8.84cm）</option>
+      </select>
+      <div class="row2">
+        <div><label>支撐挫屈長度 Lk (m)</label><input id="rp-lk" type="number" value="6.0" step="0.5" min="1"></div>
+        <div><label>鋼材 Fy (MPa)</label><input id="rp-fy" type="number" value="235" step="5"></div>
+      </div>
+      <label>橫擋（圍囹）斷面</label>
+      <select id="rp-wl">
+        <option value="472">H200×200（Zx=472 cm³）</option>
+        <option value="867" selected>H250×250（Zx=867 cm³）</option>
+        <option value="1360">H300×300（Zx=1360 cm³）</option>
+        <option value="2300">H350×350（Zx=2300 cm³）</option>
+      </select>
+    </div>
     <div class="sec">橫板條（木襯板）</div>
-    <div class="row2">
+    <label style="display:flex;align-items:center;gap:7px;cursor:pointer;font-size:12.5px;color:#333">
+      <input type="checkbox" id="rp-lag" checked onchange="document.getElementById('rp-lag-wrap').style.display=this.checked?'':'none'" style="width:auto">
+      檢核橫板條（不勾＝不檢核，如採噴凝土面層等其他方式）
+    </label>
+    <div id="rp-lag-wrap" class="row2">
       <div><label>板厚 t (cm)</label><input id="rp-t" type="number" value="6" step="0.5" min="2"></div>
       <div><label>木材容許彎曲應力 (MPa)</label><input id="rp-saw" type="number" value="8" step="0.5"></div>
     </div>
@@ -576,82 +613,180 @@ function calcStrut(){
 function rpSecChange(){document.getElementById('rp-z-wrap').style.display=document.getElementById('rp-sec').value==='custom'?'':'none';}
 function lpTChange(){document.getElementById('lp-ai-wrap').style.display=document.getElementById('lp-t').value==='custom'?'':'none';}
 
-/* ── 鋼軌樁（懸臂式 · 每支樁分析） ── */
+/* ── 鋼軌樁（懸臂式 / 單層橫撐 · 每支樁分析） ── */
+function rpSysChange(){
+  document.getElementById('rp-strut-wrap').style.display=
+    document.getElementById('rp-sys').value==='strut'?'':'none';
+}
 function calcRail(){
   var H=v('rp-H'),q=v('rp-q'),r=v('rp-r'),phi=v('rp-phi'),Fs=v('rp-fs'),sa=v('rp-sa');
   var Z=document.getElementById('rp-sec').value==='custom'?v('rp-z'):parseFloat(document.getElementById('rp-sec').value);
-  var s=v('rp-s'),w=v('rp-w'),t=v('rp-t'),saw=v('rp-saw');
+  var s=v('rp-s'),w=v('rp-w');
+  var sys=document.getElementById('rp-sys').value;
+  var chkLag=document.getElementById('rp-lag').checked;
   var rad=phi*Math.PI/180;
   var Ka=Math.pow(Math.tan(Math.PI/4-rad/2),2);
   var Kp=Math.pow(Math.tan(Math.PI/4+rad/2),2);
   var Kpd=Kp/Fs;
-  // 主動土壓 pa(z)=Ka(q+γz)：開挖面以上作用寬 s；以下因土拱效應作用寬 w（NAVFAC）
-  function paF(z1,z2){return Ka*(q*(z2-z1)+r*(z2*z2-z1*z1)/2);} // 合力
-  function paM(z1,z2,L){ // 對深度 L 取矩
+  /* 主動土壓：開挖面以上寬 s、以下寬 w（土拱效應，NAVFAC） */
+  function paF(z1,z2){return Ka*(q*(z2-z1)+r*(z2*z2-z1*z1)/2);}
+  function paM(z1,z2,L){ /* 對深度 L 取矩（力臂 L−z） */
     function g(z){return Ka*(q*(L*z-z*z/2)+r*(L*z*z/2-z*z*z/3));}
     return g(z2)-g(z1);
   }
-  function fD(D){
-    var L=H+D;
-    var Ma=s*paM(0,H,L)+w*paM(H,L,L);
-    var Mp=w*Kpd*r*D*D*D/6;
-    return Mp-Ma;
+  function paMd(z1,z2,zR){ /* 對深度 zR 取矩（力臂 z−zR，向下為正） */
+    function g(z){return Ka*(q*(z*z/2-zR*z)+r*(z*z*z/3-zR*z*z/2));}
+    return g(z2)-g(z1);
   }
-  var D0=bisect(fD,0.05,80,1e-4);
-  if(isNaN(D0)){document.getElementById('rp-result').innerHTML='<p class="ng">無法求得貫入深度（被動有效寬度可能過小），請檢查參數。</p>';return;}
-  var D=1.2*D0;
-  // 零剪力點（開挖面以下 x）
-  function fx(x){
-    return s*paF(0,H)+w*paF(H,H+x)-w*0.5*Kpd*r*x*x;
+
+  var rows='',p='';
+  var D0,D,Mmax,sig,ratio,totalL;
+
+  if(sys==='cant'){
+    function fD(D){
+      var L=H+D;
+      var Ma=s*paM(0,H,L)+w*paM(H,L,L);
+      var Mp=w*Kpd*r*D*D*D/6;
+      return Mp-Ma;
+    }
+    D0=bisect(fD,0.05,80,1e-4);
+    if(isNaN(D0)){document.getElementById('rp-result').innerHTML='<p class="ng">無法求得貫入深度（被動有效寬度可能過小），請檢查參數。</p>';return;}
+    D=1.2*D0;
+    function fx(x){
+      return s*paF(0,H)+w*paF(H,H+x)-w*0.5*Kpd*r*x*x;
+    }
+    var x0=bisect(fx,0.01,D0+H,1e-4);
+    var zs=H+x0;
+    Mmax=s*paM(0,H,zs)+w*paM(H,zs,zs)-w*Kpd*r*x0*x0*x0/6;
+    sig=Mmax*1e6/(Z*1e3);
+    ratio=sig/sa;
+    totalL=H+D;
+    rows+='<tr><td>Ka / Kp′</td><td>'+f3(Ka)+' / '+f3(Kpd)+'</td></tr>'+
+      '<tr><td>理論貫入深度 D₀ / 設計 D</td><td>'+f2(D0)+' / '+f2(D)+' m</td></tr>'+
+      '<tr><td>樁總長 H＋D</td><td>'+f2(totalL)+' m</td></tr>'+
+      '<tr><td>每樁最大彎矩 Mmax</td><td>'+f2(Mmax)+' kN·m</td></tr>'+
+      '<tr><td>樁應力 σ＝M/Z</td><td>'+f2(sig)+' MPa</td></tr>'+
+      '<tr><td>樁應力檢核 σ/σa</td><td>'+statusCell(ratio)+'</td></tr>';
+    p+='【鋼軌樁擋土計算 · 懸臂式 · 每支樁分析 · 砂質土（c=0）已降水】\n\n';
+    p+='一、設計條件\n';
+    p+='  H = '+f2(H)+' m，q = '+f2(q)+' kN/m²，γ = '+f2(r)+' kN/m³，φ = '+phi+'°，Fs = '+Fs+'\n';
+    p+='  樁斷面 Z = '+Z+' cm³，σa = '+sa+' MPa\n';
+    p+='  樁間距 s = '+f2(s)+' m，被動有效寬度 w = '+f2(w)+' m\n\n';
+    p+='二、土壓係數\n';
+    p+='  Ka = tan²(45°−φ/2) = '+f3(Ka)+'；Kp′ = Kp/Fs = '+f3(Kpd)+'\n\n';
+    p+='三、貫入深度（對樁趾取矩）\n';
+    p+='  主動：開挖面以上作用寬 s、以下因土拱效應作用寬 w（NAVFAC）\n';
+    p+='  解得 D₀ = '+f2(D0)+' m，設計 D = 1.2 D₀ = '+f2(D)+' m，樁總長 = '+f2(totalL)+' m\n\n';
+    p+='四、樁彎矩與應力\n';
+    p+='  零剪力點：開挖面以下 x = '+f2(x0)+' m\n';
+    p+='  Mmax = '+f2(Mmax)+' kN·m/樁，σ = '+f2(sig)+' MPa\n';
+    p+='  σ/σa = '+f2(ratio)+(ratio<=1?' ∴ OK':' ∴ NG，請縮小樁間距、加大斷面或改採橫撐')+'\n\n';
+  }else{
+    /* 單層橫撐：自由端支承法（每樁） */
+    var d1=v('rp-d1'),ss=v('rp-ss');
+    var hs=document.getElementById('rp-hs').value.split(',');
+    var Ast=parseFloat(hs[0]),rmin=parseFloat(hs[1]);
+    var Lk=v('rp-lk'),Fy=v('rp-fy');
+    var Zw=parseFloat(document.getElementById('rp-wl').value);
+    if(d1>=H){document.getElementById('rp-result').innerHTML='<p class="ng">支撐位置深度須小於開挖深度。</p>';return;}
+    function fD2(D){
+      var L=H+D;
+      var Ma=s*paMd(0,H,d1)+w*paMd(H,L,d1);
+      var Mp=w*Kpd*r*((H-d1)*D*D/2+D*D*D/3);
+      return Mp-Ma;
+    }
+    D0=bisect(fD2,0.05,80,1e-4);
+    if(isNaN(D0)){document.getElementById('rp-result').innerHTML='<p class="ng">無法求得貫入深度，請檢查參數（支撐位置可能過深）。</p>';return;}
+    D=1.2*D0;
+    var L0=H+D0;
+    var PaT=s*paF(0,H)+w*paF(H,L0);
+    var PpT=w*0.5*Kpd*r*D0*D0;
+    var Rp=PaT-PpT; /* kN/樁 */
+    var Rm=Rp/s;    /* kN/m 沿牆分佈 */
+    /* 樁最大彎矩：支撐以下零剪力（z*≦H 情況） */
+    function fz(z){ return s*paF(0,Math.min(z,H))+ (z>H? w*paF(H,z):0) - Rp; }
+    var z0=bisect(fz,d1+0.001,H+D0,1e-4);
+    Mmax=NaN;var sigP=NaN,ratioP=NaN;
+    if(!isNaN(z0)){
+      var Mact=(z0<=H)? s*(Ka*(q*z0*z0/2+r*z0*z0*z0/6))
+                      : s*paM(0,H,z0)+w*paM(H,z0,z0);
+      Mmax=Math.abs(Rp*(z0-d1)-Mact);
+      sigP=Mmax*1e6/(Z*1e3);
+      ratioP=sigP/sa;
+    }
+    /* 支撐（壓桿 AISC ASD） */
+    var N=Rm*ss;
+    var lam=Lk*100/rmin;
+    var E=200000;
+    var Cc=Math.sqrt(2*Math.PI*Math.PI*E/Fy);
+    var Fa;
+    if(lam<=Cc){var t2=lam/Cc;Fa=(1-t2*t2/2)*Fy/(5/3+3*t2/8-t2*t2*t2/8);}
+    else{Fa=12*Math.PI*Math.PI*E/(23*lam*lam);}
+    var sigN=N*1e3/(Ast*1e2);
+    var ratioN=sigN/Fa;
+    /* 橫擋 */
+    var Mw=Rm*ss*ss/8;
+    var sigW=Mw*1e6/(Zw*1e3);
+    var ratioW=sigW/sa;
+    totalL=H+D;
+    rows+='<tr><td>Ka / Kp′</td><td>'+f3(Ka)+' / '+f3(Kpd)+'</td></tr>'+
+      '<tr><td>理論貫入深度 D₀ / 設計 D</td><td>'+f2(D0)+' / '+f2(D)+' m</td></tr>'+
+      '<tr><td>樁總長 H＋D</td><td>'+f2(totalL)+' m</td></tr>'+
+      '<tr><td>支撐反力（每樁 / 每米）</td><td>'+f2(Rp)+' kN / '+f2(Rm)+' kN·m⁻¹</td></tr>'+
+      (isNaN(Mmax)?'':'<tr><td>樁最大彎矩 Mmax</td><td>'+f2(Mmax)+' kN·m</td></tr>'+
+      '<tr><td>樁應力檢核 σ/σa</td><td>'+statusCell(ratioP)+'</td></tr>')+
+      '<tr><td>支撐軸力 N＝Rm×ss</td><td>'+f2(N)+' kN</td></tr>'+
+      '<tr><td>λ / Fa</td><td>'+f2(lam)+' / '+f2(Fa)+' MPa</td></tr>'+
+      '<tr><td>支撐檢核 σ/Fa</td><td>'+statusCell(ratioN)+'</td></tr>'+
+      '<tr><td>橫擋彎矩 M＝Rm·ss²/8</td><td>'+f2(Mw)+' kN·m</td></tr>'+
+      '<tr><td>橫擋檢核 σ/σa</td><td>'+statusCell(ratioW)+'</td></tr>';
+    p+='【鋼軌樁擋土計算 · 單層橫撐（自由端支承法）· 每支樁分析】\n\n';
+    p+='一、設計條件\n';
+    p+='  H = '+f2(H)+' m，支撐深度 d₁ = '+f2(d1)+' m，q = '+f2(q)+' kN/m²\n';
+    p+='  γ = '+f2(r)+' kN/m³，φ = '+phi+'°，Fs = '+Fs+'\n';
+    p+='  樁 Z = '+Z+' cm³，s = '+f2(s)+' m，w = '+f2(w)+' m\n';
+    p+='  支撐 A = '+Ast+' cm²，rmin = '+rmin+' cm，間距 ss = '+f2(ss)+' m，Lk = '+f2(Lk)+' m\n';
+    p+='  橫擋 Zx = '+Zw+' cm³，σa = '+sa+' MPa\n\n';
+    p+='二、土壓係數\n';
+    p+='  Ka = '+f3(Ka)+'；Kp′ = Kp/Fs = '+f3(Kpd)+'\n\n';
+    p+='三、貫入深度（對支撐點取矩；主動上寬 s／下寬 w，被動寬 w）\n';
+    p+='  解得 D₀ = '+f2(D0)+' m，設計 D = 1.2 D₀ = '+f2(D)+' m，樁總長 = '+f2(totalL)+' m\n\n';
+    p+='四、支撐反力（水平力平衡）\n';
+    p+='  ΣPa = '+f2(PaT)+' kN/樁，ΣPp = '+f2(PpT)+' kN/樁\n';
+    p+='  R = '+f2(Rp)+' kN/樁（= '+f2(Rm)+' kN/m）\n\n';
+    if(!isNaN(Mmax)){
+      p+='五、樁彎矩檢核\n';
+      p+='  零剪力深度 z₀ = '+f2(z0)+' m，Mmax = '+f2(Mmax)+' kN·m/樁\n';
+      p+='  σ = '+f2(sigP)+' MPa，σ/σa = '+f2(ratioP)+(ratioP<=1?' ∴ OK':' ∴ NG')+'\n\n';
+    }
+    p+='六、支撐壓桿檢核（AISC ASD）\n';
+    p+='  N = Rm×ss = '+f2(Rm)+'×'+f2(ss)+' = '+f2(N)+' kN\n';
+    p+='  λ = '+f2(lam)+'，Cc = '+f2(Cc)+'，Fa = '+f2(Fa)+' MPa\n';
+    p+='  σ = N/A = '+f2(sigN)+' MPa，σ/Fa = '+f2(ratioN)+(ratioN<=1?' ∴ OK':' ∴ NG，請加大斷面或縮短 Lk')+'\n\n';
+    p+='七、橫擋檢核（簡支 M=Rm·ss²/8）\n';
+    p+='  M = '+f2(Mw)+' kN·m，σ = '+f2(sigW)+' MPa，σ/σa = '+f2(ratioW)+(ratioW<=1?' ∴ OK':' ∴ NG')+'\n\n';
   }
-  var x0=bisect(fx,0.01,D0+H,1e-4);
-  var zs=H+x0;
-  var Mmax=s*paM(0,H,zs)+w*paM(H,zs,zs)-w*Kpd*r*x0*x0*x0/6; // kN·m/樁
-  var sig=Mmax*1e6/(Z*1e3);
-  var ratio=sig/sa;
-  // 橫板條：最深處側壓 × 簡支跨 s
-  var pH=Ka*(q+r*H); // kN/m²
-  var Mlag=pH*s*s/8; // kN·m per 1m 高條帶
-  var Zlag=100*t*t/6; // cm³ per 1m 條帶（b=100cm）
-  var sigLag=Mlag*1e6/(Zlag*1e3);
-  var ratioLag=sigLag/saw;
-  var totalL=H+D;
-  document.getElementById('rp-result').innerHTML=
-    '<table><tr><th>項目</th><th>數值</th></tr>'+
-    '<tr><td>Ka / Kp′</td><td>'+f3(Ka)+' / '+f3(Kpd)+'</td></tr>'+
-    '<tr><td>理論貫入深度 D₀ / 設計 D</td><td>'+f2(D0)+' / '+f2(D)+' m</td></tr>'+
-    '<tr><td>鋼軌樁總長 H＋D</td><td>'+f2(totalL)+' m</td></tr>'+
-    '<tr><td>每樁最大彎矩 Mmax</td><td>'+f2(Mmax)+' kN·m</td></tr>'+
-    '<tr><td>鋼軌應力 σ＝M/Z</td><td>'+f2(sig)+' MPa</td></tr>'+
-    '<tr><td>鋼軌應力檢核 σ/σa</td><td>'+statusCell(ratio)+'</td></tr>'+
-    '<tr><td>最深處側壓 p</td><td>'+f2(pH)+' kN/m²</td></tr>'+
-    '<tr><td>板條彎矩 M＝p·s²/8</td><td>'+f2(Mlag)+' kN·m/m</td></tr>'+
-    '<tr><td>板條應力檢核 σ/σa(木)</td><td>'+statusCell(ratioLag)+'</td></tr></table>';
-  var p='';
-  p+='【鋼軌樁擋土計算 · 懸臂式 · 每支樁分析 · 砂質土（c=0）已降水】\n\n';
-  p+='一、設計條件\n';
-  p+='  H = '+f2(H)+' m，q = '+f2(q)+' kN/m²，γ = '+f2(r)+' kN/m³，φ = '+phi+'°，Fs = '+Fs+'\n';
-  p+='  鋼軌 Z = '+Z+' cm³，σa = '+sa+' MPa（舊料折減）\n';
-  p+='  樁間距 s = '+f2(s)+' m，被動有效寬度 w = '+f2(w)+' m\n';
-  p+='  橫板條 t = '+t+' cm，木材 σa = '+saw+' MPa\n\n';
-  p+='二、土壓係數\n';
-  p+='  Ka = tan²(45°−φ/2) = '+f3(Ka)+'；Kp′ = Kp/Fs = '+f3(Kpd)+'\n\n';
-  p+='三、貫入深度（對樁趾取矩）\n';
-  p+='  主動土壓：開挖面以上作用寬度 = 樁間距 s；開挖面以下因土拱效應\n';
-  p+='  作用寬度 = 有效寬度 w（NAVFAC 建議）\n';
-  p+='  Ma = s×∫₀ᴴ pa(z)(L−z)dz + w×∫ᴴᴸ pa(z)(L−z)dz\n';
-  p+='  Mp = w×Kp′·γ·D³/6\n';
-  p+='  解得 D₀ = '+f2(D0)+' m，設計 D = 1.2 D₀ = '+f2(D)+' m\n';
-  p+='  鋼軌樁總長 = '+f2(totalL)+' m\n\n';
-  p+='四、鋼軌樁彎矩與應力\n';
-  p+='  零剪力點：開挖面以下 x = '+f2(x0)+' m\n';
-  p+='  Mmax = '+f2(Mmax)+' kN·m/樁\n';
-  p+='  σ = Mmax/Z = '+f2(sig)+' MPa，σ/σa = '+f2(ratio)+(ratio<=1?' ∴ OK':' ∴ NG，請縮小樁間距或加大斷面')+'\n\n';
-  p+='五、橫板條檢核（最深處側壓、簡支跨 s）\n';
-  p+='  p = Ka(q+γH) = '+f3(Ka)+'×('+f2(q)+'+'+f2(r)+'×'+f2(H)+') = '+f2(pH)+' kN/m²\n';
-  p+='  M = p·s²/8 = '+f2(Mlag)+' kN·m/m\n';
-  p+='  Z = 100×t²/6 = '+f2(Zlag)+' cm³/m\n';
-  p+='  σ = '+f2(sigLag)+' MPa，σ/σa = '+f2(ratioLag)+(ratioLag<=1?' ∴ OK':' ∴ NG，請加厚板條或縮小樁間距')+'\n';
+
+  /* 橫板條（可選） */
+  if(chkLag){
+    var t=v('rp-t'),saw=v('rp-saw');
+    var pH=Ka*(q+r*H);
+    var Mlag=pH*s*s/8;
+    var Zlag=100*t*t/6;
+    var sigLag=Mlag*1e6/(Zlag*1e3);
+    var ratioLag=sigLag/saw;
+    rows+='<tr><td>最深處側壓 p</td><td>'+f2(pH)+' kN/m²</td></tr>'+
+      '<tr><td>板條彎矩 M＝p·s²/8</td><td>'+f2(Mlag)+' kN·m/m</td></tr>'+
+      '<tr><td>板條應力檢核 σ/σa(木)</td><td>'+statusCell(ratioLag)+'</td></tr>';
+    p+='【橫板條檢核】（最深處側壓、簡支跨 s）\n';
+    p+='  p = Ka(q+γH) = '+f2(pH)+' kN/m²，M = p·s²/8 = '+f2(Mlag)+' kN·m/m\n';
+    p+='  Z = 100×t²/6 = '+f2(Zlag)+' cm³/m，σ = '+f2(sigLag)+' MPa\n';
+    p+='  σ/σa = '+f2(ratioLag)+(ratioLag<=1?' ∴ OK':' ∴ NG，請加厚板條或縮小樁間距')+'\n';
+  }else{
+    p+='※ 未檢核橫板條（採其他擋土面層方式，應另行檢討）。\n';
+  }
+
+  document.getElementById('rp-result').innerHTML='<table><tr><th>項目</th><th>數值</th></tr>'+rows+'</table>';
   document.getElementById('rp-proc-text').textContent=p;
   document.getElementById('rp-proc').style.display='';
   if(window.innerWidth<768){var b=document.getElementById('mobTab-rp-r');if(b)switchMobTab('rp-r',b);}
