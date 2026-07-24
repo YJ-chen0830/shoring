@@ -158,6 +158,7 @@
   </div>
   <div class="card" data-tab="ct-r">
     <h2>懸臂式結果</h2>
+    <div id="ct-diagram"></div>
     <div id="ct-result"><p style="color:#888">尚未計算</p></div>
     <details class="proc" id="ct-proc" style="display:none">
       <summary>📋 計算過程（供第三方檢核）</summary>
@@ -230,6 +231,7 @@
   </div>
   <div class="card" data-tab="st-r">
     <h2>單層支撐結果</h2>
+    <div id="st-diagram"></div>
     <div id="st-result"><p style="color:#888">尚未計算</p></div>
     <details class="proc" id="st-proc" style="display:none">
       <summary>📋 計算過程（供第三方檢核）</summary>
@@ -325,6 +327,7 @@
   </div>
   <div class="card" data-tab="rp-r">
     <h2>鋼軌樁結果</h2>
+    <div id="rp-diagram"></div>
     <div id="rp-result"><p style="color:#888">尚未計算</p></div>
     <details class="proc" id="rp-proc" style="display:none">
       <summary>📋 計算過程（供第三方檢核）</summary>
@@ -401,6 +404,7 @@
   </div>
   <div class="card" data-tab="lp-r">
     <h2>工作井結果</h2>
+    <div id="lp-diagram"></div>
     <div id="lp-result"><p style="color:#888">尚未計算</p></div>
     <details class="proc" id="lp-proc" style="display:none">
       <summary>📋 計算過程（供第三方檢核）</summary>
@@ -446,6 +450,120 @@ function statusCell(ratio){
   return ratio<=1.0 ? '<span class="ok">OK（'+f2(ratio)+'）</span>' : '<span class="ng">NG（'+f2(ratio)+'）</span>';
 }
 
+/* ── 示意圖（共用 JRH.diagram，見 jrh-core.js）──
+   四種工法斷面/平面差異大，分開畫：懸臂式／單層支撐為斷面立面圖（主動、
+   被動土壓以三角形示意＋合力箭頭，比照 retaining-wall 工具的畫法）；
+   鋼軌樁因樁體不連續，改畫平面配置（樁間距 s、被動有效寬度 w 是這個
+   工法的核心概念，斷面圖反而不是重點）；工作井本身就是平面環形結構，
+   直接畫平面（圓形環壓／橢圓形短軸端最大環壓處標示）。*/
+function buildCantDiagram(H,D,q,ratio){
+  var W=420,Hpx=300,topPad=36,bottomPad=28;
+  var totalDepth=H+D,drawH=Hpx-topPad-bottomPad,scale=drawH/totalDepth;
+  var groundY=topPad,exY=groundY+H*scale,tipY=groundY+totalDepth*scale;
+  var dimX=32,triAX=58,soilX=90,pileX=200,soilW=pileX-soilX,rightW=130,triPX=pileX+rightW+14;
+  var mColor=ratio<=1?'#1a7d3a':'#c0392b';
+  var D_=JRH.diagram,s='';
+  s+=D_.label(14,16,'懸臂式鋼板樁斷面示意圖（比例尺概略）',{anchor:'start',size:9,color:'#8a8370'});
+  s+='<rect x="'+soilX+'" y="'+groundY+'" width="'+soilW+'" height="'+(tipY-groundY)+'" fill="url(#jrhSoil)" stroke="#8a7a5c" stroke-width="1"/>';
+  s+='<rect x="'+pileX+'" y="'+exY+'" width="'+rightW+'" height="'+(tipY-exY)+'" fill="url(#jrhSoil)" stroke="#8a7a5c" stroke-width="1"/>';
+  s+='<line x1="'+soilX+'" y1="'+groundY+'" x2="'+pileX+'" y2="'+groundY+'" stroke="#8a7a5c" stroke-width="1.3"/>';
+  s+='<line x1="'+pileX+'" y1="'+exY+'" x2="'+(pileX+rightW)+'" y2="'+exY+'" stroke="#8a7a5c" stroke-width="1.3" stroke-dasharray="4,2"/>';
+  s+='<rect x="'+(pileX-3)+'" y="'+groundY+'" width="6" height="'+(tipY-groundY)+'" fill="#0b1f3a"/>';
+  s+=D_.arrow(soilX+soilW-16,groundY-12,soilX+soilW-16,groundY-2,{color:'#5c5442',width:1.3});
+  s+=D_.label(soilX+soilW-16,groundY-16,'q='+q.toFixed(1)+'kN/m²',{size:8,color:'#5c5442'});
+  s+='<polygon points="'+triAX+','+groundY+' '+triAX+','+tipY+' '+(triAX-20)+','+tipY+'" fill="#f4d9d3" stroke="#c0392b" stroke-width="1"/>';
+  s+=D_.arrow(triAX-10,(groundY+tipY)/2,soilX+4,(groundY+tipY)/2,{color:'#c0392b',width:1.4});
+  s+=D_.label(triAX-24,groundY+14,'主動',{anchor:'end',size:8,color:'#c0392b'});
+  s+='<polygon points="'+triPX+','+exY+' '+triPX+','+tipY+' '+(triPX+16)+','+tipY+'" fill="#f4d9d3" stroke="#c0392b" stroke-width="1"/>';
+  s+=D_.arrow(triPX+8,(exY+tipY)/2,pileX+rightW-4,(exY+tipY)/2,{color:'#c0392b',width:1.4});
+  s+=D_.label(triPX+20,tipY-4,'被動',{anchor:'start',size:8,color:'#c0392b'});
+  s+=D_.dim(dimX,groundY,dimX,exY,'H='+H.toFixed(2)+'m',{color:'#5c5442'});
+  s+=D_.dim(dimX,exY,dimX,tipY,'D='+D.toFixed(2)+'m',{color:mColor});
+  return D_.wrap(W,Hpx,s,{maxWidth:440});
+}
+
+function buildStrutDiagram(H,D,d1,R,ratio){
+  var W=420,Hpx=300,topPad=36,bottomPad=28;
+  var totalDepth=H+D,drawH=Hpx-topPad-bottomPad,scale=drawH/totalDepth;
+  var groundY=topPad,exY=groundY+H*scale,tipY=groundY+totalDepth*scale,strutY=groundY+d1*scale;
+  var dimX=32,triAX=58,soilX=90,pileX=200,soilW=pileX-soilX,rightW=130,triPX=pileX+rightW+14;
+  var mColor=ratio<=1?'#1a7d3a':'#c0392b';
+  var D_=JRH.diagram,s='';
+  s+=D_.label(14,16,'單層水平支撐斷面示意圖（比例尺概略）',{anchor:'start',size:9,color:'#8a8370'});
+  s+='<rect x="'+soilX+'" y="'+groundY+'" width="'+soilW+'" height="'+(tipY-groundY)+'" fill="url(#jrhSoil)" stroke="#8a7a5c" stroke-width="1"/>';
+  s+='<rect x="'+pileX+'" y="'+exY+'" width="'+rightW+'" height="'+(tipY-exY)+'" fill="url(#jrhSoil)" stroke="#8a7a5c" stroke-width="1"/>';
+  s+='<line x1="'+soilX+'" y1="'+groundY+'" x2="'+pileX+'" y2="'+groundY+'" stroke="#8a7a5c" stroke-width="1.3"/>';
+  s+='<line x1="'+pileX+'" y1="'+exY+'" x2="'+(pileX+rightW)+'" y2="'+exY+'" stroke="#8a7a5c" stroke-width="1.3" stroke-dasharray="4,2"/>';
+  s+='<rect x="'+(pileX-3)+'" y="'+groundY+'" width="6" height="'+(tipY-groundY)+'" fill="#0b1f3a"/>';
+  s+='<line x1="'+pileX+'" y1="'+strutY+'" x2="'+(pileX+rightW-10)+'" y2="'+strutY+'" stroke="#0b1f3a" stroke-width="4"/>';
+  s+='<line x1="'+(pileX+rightW-10)+'" y1="'+(strutY-8)+'" x2="'+(pileX+rightW-10)+'" y2="'+(strutY+8)+'" stroke="#0b1f3a" stroke-width="3"/>';
+  s+=D_.label(pileX+rightW/2,strutY-10,'水平支撐',{size:8,color:'#0b1f3a',weight:'700'});
+  s+=D_.arrow(soilX+soilW-14,groundY-12,soilX+soilW-14,groundY-2,{color:'#5c5442',width:1.3});
+  s+=D_.label(soilX+soilW-14,groundY-16,'q',{size:8,color:'#5c5442'});
+  s+='<polygon points="'+triAX+','+groundY+' '+triAX+','+tipY+' '+(triAX-20)+','+tipY+'" fill="#f4d9d3" stroke="#c0392b" stroke-width="1"/>';
+  s+=D_.arrow(triAX-10,strutY,soilX+4,strutY,{color:'#c0392b',width:1.6});
+  s+=D_.label(triAX-24,tipY-4,'主動',{anchor:'end',size:8,color:'#c0392b'});
+  s+=D_.label(soilX-6,strutY-8,'R='+R.toFixed(1)+'kN/m',{anchor:'end',size:8,color:'#c0392b',weight:'700'});
+  s+='<polygon points="'+triPX+','+exY+' '+triPX+','+tipY+' '+(triPX+16)+','+tipY+'" fill="#f4d9d3" stroke="#c0392b" stroke-width="1"/>';
+  s+=D_.arrow(triPX+8,(exY+tipY)/2,pileX+rightW-4,(exY+tipY)/2,{color:'#c0392b',width:1.4});
+  s+=D_.label(triPX+20,tipY-4,'被動',{anchor:'start',size:8,color:'#c0392b'});
+  s+=D_.dim(dimX,groundY,dimX,strutY,'d₁='+d1.toFixed(2)+'m',{color:'#5c5442'});
+  s+=D_.dim(dimX,exY,dimX,tipY,'D='+D.toFixed(2)+'m',{color:mColor});
+  s+=D_.dim(W-24,groundY,W-24,exY,'H='+H.toFixed(2)+'m',{color:'#5c5442'});
+  return D_.wrap(W,Hpx,s,{maxWidth:440});
+}
+
+function buildRailPlan(s_,w,sys,d1){
+  var W=420,Hpx=180,midY=70,margin=48;
+  var pxPerM=Math.min((W-2*margin)/(2.4*s_),50);
+  var cx=W/2;
+  var D_=JRH.diagram,str='';
+  str+=D_.label(14,16,'鋼軌樁排列平面示意圖（比例尺概略）',{anchor:'start',size:9,color:'#8a8370'});
+  var xs=[cx-s_*pxPerM,cx,cx+s_*pxPerM];
+  xs.forEach(function(x){
+    str+='<rect x="'+(x-w*pxPerM/2)+'" y="'+(midY+8)+'" width="'+(w*pxPerM)+'" height="26" fill="url(#jrhSoil)" stroke="#c0392b" stroke-width="1" opacity="0.85"/>';
+  });
+  str+='<line x1="'+margin+'" y1="'+midY+'" x2="'+(W-margin)+'" y2="'+midY+'" stroke="#8a7a5c" stroke-width="1" stroke-dasharray="3,2"/>';
+  for(var i=0;i<xs.length-1;i++){
+    str+='<rect x="'+(xs[i]+6)+'" y="'+(midY-4)+'" width="'+(xs[i+1]-xs[i]-12)+'" height="8" fill="#c9a14a" opacity="0.5"/>';
+  }
+  xs.forEach(function(x){
+    str+='<circle cx="'+x+'" cy="'+midY+'" r="6" fill="#0b1f3a"/>';
+  });
+  str+=D_.dim(xs[0],midY-20,xs[1],midY-20,'s='+s_.toFixed(2)+'m',{color:'#5c5442'});
+  str+=D_.label(xs[1],midY+46,'被動有效寬 w='+w.toFixed(2)+'m',{size:8,color:'#c0392b'});
+  str+=D_.label(cx,midY+64,sys==='cant'?'懸臂式（無橫撐）':'單層橫撐（d₁='+d1.toFixed(2)+'m）',{size:8.5,color:'#5c5442'});
+  return D_.wrap(W,Hpx,str,{maxWidth:440});
+}
+
+function buildShaftPlan(shape,Di,La,Lb,pMax){
+  var W=340,Hpx=280,cx=W/2,cy=150;
+  var D_=JRH.diagram,s='';
+  s+=D_.label(14,16,(shape==='circle'?'圓形':'橢圓形')+'工作井平面示意圖（環壓，比例尺概略）',{anchor:'start',size:9,color:'#8a8370'});
+  if(shape==='circle'){
+    var R=Di/2,px=Math.min(100/R,40),rpx=R*px;
+    s+='<circle cx="'+cx+'" cy="'+cy+'" r="'+rpx+'" fill="url(#jrhConcrete)" stroke="#0b1f3a" stroke-width="2.5"/>';
+    [0,90,180,270].forEach(function(deg){
+      var rad=deg*Math.PI/180;
+      var x1=cx+(rpx+22)*Math.cos(rad),y1=cy+(rpx+22)*Math.sin(rad);
+      var x2=cx+(rpx+2)*Math.cos(rad),y2=cy+(rpx+2)*Math.sin(rad);
+      s+=D_.arrow(x1,y1,x2,y2,{color:'#c0392b',width:1.4});
+    });
+    s+=D_.label(cx,cy-rpx-30,'p='+pMax.toFixed(1)+'kN/m²',{size:8.5,color:'#c0392b'});
+    s+=D_.dim(cx-rpx,cy+rpx+18,cx+rpx,cy+rpx+18,'Di='+Di.toFixed(2)+'m',{color:'#5c5442'});
+  }else{
+    var a=La/2,b=Lb/2,px2=Math.min(90/a,36),apx=a*px2,bpx=b*px2;
+    s+='<ellipse cx="'+cx+'" cy="'+cy+'" rx="'+apx+'" ry="'+bpx+'" fill="url(#jrhConcrete)" stroke="#0b1f3a" stroke-width="2.5"/>';
+    s+='<circle cx="'+cx+'" cy="'+(cy-bpx)+'" r="4" fill="#c9a14a"/>';
+    s+='<circle cx="'+cx+'" cy="'+(cy+bpx)+'" r="4" fill="#c9a14a"/>';
+    s+=D_.label(cx+apx+14,cy-bpx,'短軸端',{anchor:'start',size:7.5,color:'#9a7b2a'});
+    s+=D_.label(cx+apx+14,cy-bpx+11,'（最大環壓處）',{anchor:'start',size:7.5,color:'#9a7b2a'});
+    s+=D_.dim(cx-apx,cy+bpx+18,cx+apx,cy+bpx+18,'La='+La.toFixed(2)+'m',{color:'#5c5442'});
+    s+=D_.dim(cx-apx-26,cy-bpx,cx-apx-26,cy+bpx,'Lb='+Lb.toFixed(2)+'m',{color:'#5c5442'});
+  }
+  return D_.wrap(W,Hpx,s,{maxWidth:340});
+}
+
 /* ── 懸臂式 ── */
 function calcCant(){
   var H=v('ct-H'),q=v('ct-q'),r=v('ct-r'),phi=v('ct-phi'),Fs=v('ct-fs'),sa=v('ct-sa');
@@ -475,6 +593,7 @@ function calcCant(){
   var sig=Mmax*1e6/(Z*1e3); // N/mm² = MPa (M[kN·m/m]→N·mm/m ÷ Z[cm³/m]→mm³/m)
   var ratio=sig/sa;
   var totalL=H+D;
+  if(window.JRH&&JRH.diagram)document.getElementById('ct-diagram').innerHTML=buildCantDiagram(H,D,q,ratio);
   document.getElementById('ct-result').innerHTML=
     '<table><tr><th>項目</th><th>數值</th></tr>'+
     '<tr><td>主動土壓係數 Ka</td><td>'+f3(Ka)+'</td></tr>'+
@@ -571,6 +690,7 @@ function calcStrut(){
     ratioP=sigP/sa;
   }
   var totalL=H+D;
+  if(window.JRH&&JRH.diagram)document.getElementById('st-diagram').innerHTML=buildStrutDiagram(H,D,d1,R,ratioN);
   document.getElementById('st-result').innerHTML=
     '<table><tr><th>項目</th><th>數值</th></tr>'+
     '<tr><td>Ka / Kp′</td><td>'+f3(Ka)+' / '+f3(Kpd)+'</td></tr>'+
@@ -798,6 +918,7 @@ function calcRail(){
     p+='※ 未檢核橫板條（採其他擋土面層方式，應另行檢討）。\n';
   }
 
+  if(window.JRH&&JRH.diagram)document.getElementById('rp-diagram').innerHTML=buildRailPlan(s,w,sys,sys==='strut'?d1:0);
   document.getElementById('rp-result').innerHTML='<table><tr><th>項目</th><th>數值</th></tr>'+rows+'</table>';
   document.getElementById('rp-proc-text').textContent=p;
   document.getElementById('rp-proc').style.display='';
@@ -907,6 +1028,7 @@ function calcShaft(){
     p+='  時，應以環框架（Frame）分析複核；正式設計依製造商型錄與技師簽證。\n';
   }
   p+='※ 襯板 A、I、Z 值應依實際採用製造商型錄修正；地下水壓、開口補強、井底穩定另行檢討。\n';
+  if(window.JRH&&JRH.diagram)document.getElementById('lp-diagram').innerHTML=buildShaftPlan(shape,shape==='circle'?Di:0,shape==='ellipse'?La:0,shape==='ellipse'?Lb:0,pMax);
   document.getElementById('lp-result').innerHTML='<table><tr><th>項目</th><th>數值</th></tr>'+rows+'</table>';
   document.getElementById('lp-proc-text').textContent=p;
   document.getElementById('lp-proc').style.display='';
